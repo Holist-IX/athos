@@ -20,16 +20,23 @@ from mininet.node import RemoteController
 
 from sys import argv
 
-DEFAULT_INPUT_FILE = "/etc/mxitt/topology.json"
+DEFAULT_INPUT_FILE = "/etc/mixtt/topology.json"
 
 class MIXTT():
-             
+    """ Mininet IXP topology tester. 
+    
+        Takes json with topology information and builds a network based on this.
+        It will check the reachability of all hosts as well as redundancy is 
+        working by turning off each link between switches and validates that 
+        hosts are still able to communicate. """
 
     def __init__(self):
         self.net = None
         self.network_matrix = None
         self.hosts_matrix = None
         self.switch_matrix = None
+        self.switch_dps = None
+
 
     def build_network(self):
         """ Builds a mininet network based on the network matrix that's been 
@@ -37,7 +44,8 @@ class MIXTT():
         self.hosts_matrix = self.network_matrix['hosts_matrix']
         self.switch_matrix = self.network_matrix['switch_matrix']
 
-        topo = self.MyTopo(hosts_matrix=self.hosts_matrix, switch_matrix=self.switch_matrix)
+        topo = self.MyTopo( hosts_matrix=self.hosts_matrix, 
+                            switch_matrix=self.switch_matrix)
         self.net = Mininet(
             topo=topo, 
             controller=RemoteController(
@@ -117,10 +125,10 @@ class MIXTT():
             nw_matrix = self.open_file(DEFAULT_INPUT_FILE)
         
         if not nw_matrix:
-            error("No topology discovered. Please check input files")
+            error("No topology discovered. Please check input files\n")
 
         if nw_matrix:
-            self.network_matrix = nw_matrix
+            self.check_matrix(nw_matrix)
             self.build_network()
             self.net.start()
             self.add_ipv6()
@@ -152,8 +160,9 @@ class MIXTT():
         try:
             data = json.loads(json_string)
         except ValueError as err:
-            error(f"Error in the input json string")
+            error(f"Error in the input json string\n")
         return data
+
 
     def open_file(self, input_file):
         """ Opens the json file that contains the network topology """
@@ -162,16 +171,82 @@ class MIXTT():
             with open(input_file) as jsonFile:
                 data = json.load(jsonFile)
         except (UnicodeDecodeError, PermissionError, ValueError) as err:
-            error(f"Error in the file {input_file}")
+            error(f"Error in the file {input_file}\n")
         except FileNotFoundError as err:
-            error(f"File not found: {input_file}")
+            error(f"File not found: {input_file}\n")
             if input_file is DEFAULT_INPUT_FILE:
                 error(
                     "Please specify a defualt topology in " +
                     "/etc/mxitt/topology.json or specify a topology file " +
-                    "using the -i --input option")
+                    "using the -i --input option\n")
+                sys.exit()
         
         return data
+
+
+    def check_matrix(self, nw_matrix):
+        """ Checks and validates the network matrix format """
+        err_msg = "Malformed config detected! Please check config: "
+        
+        if "hosts_matrix" not in nw_matrix:
+            error(f"{err_msg}No \"hosts_matrix\" is detected\n")
+            sys.exit()
+        if not nw_matrix["hosts_matrix"]:
+            error(f"{err_msg}hosts_matrix doesn't have content\n")
+            sys.exit()
+        for host in nw_matrix["hosts_matrix"]:
+            if len(host) != 6:
+                if host[0]:
+                    error(f"{err_msg}host {host[0]} seems to be missing parts "+
+                    "in the matrix.\n")
+                else:
+                    error(f"{err_msg} host matrix seems to be missing parts\n")
+                error(f"{err_msg}Please ensure hosts matrix is as follows:\n")
+                error(  "[hostname,\tipv4\\subnet,\tipv6\\subnet,\tmac," +
+                        "\tswitchname_host_is_connected_to," + 
+                        "\tport_host_is_connected_to]\n")
+                sys.exit()
+            malformed = False
+            if "." not in host[1] or "/" not in host[1]:
+                error(f"{err_msg}Host: {host[0]} has an error in ipv4 section\n")
+                error(f"IPv4 section: {host[1]}\n")
+                malformed = True
+            if ":" not in host[2] or "/" not in host[2]:
+                error(f"{err_msg}Host: {host[0]} has an error in ipv6 section\n")
+                error(f"IPv6 section: {host[2]}\n")
+                malformed = True
+            if ":" not in host[3]:
+                error(f"{err_msg}Host: {host[0]} has an error in mac section\n")
+                error(f"mac section: {host[3]}\n")
+                malformed = True
+            if malformed:
+                sys.exit()
+
+            
+        if "switch_matrix" not in nw_matrix:
+            error(f"{err_msg}No \"switch_matrix\" detected\n")
+            sys.exit()
+        if not nw_matrix["switch_matrix"]:
+            error(f"{err_msg}switch matrix doesn't have content\n")
+            sys.exit()
+        
+        for switch in nw_matrix["switch_matrix"]:
+            if len(switch) != 4:
+                error(f"{err_msg}The switch matrix seems to be missing parts. "+
+                "please ensure format is as follows:\n"+
+                "[switch1_name,\tport_connecting_switch1_to_switch2,"+
+                "\tswitch2_name,\tport_connecting_switch2_to_switch1]\n")
+                sys.exit()
+        
+        self.network_matrix = nw_matrix
+        self.hosts_matrix = self.network_matrix["hosts_matrix"]
+        self.switch_matrix = self.network_matrix["switch_matrix"]
+        
+        if "switch_dps" not in nw_matrix:
+            warn("No \"switch_dps\" detected, dps generated in Mininet might" +
+            " not match dps in faucet config\n")
+        else:
+            self.switch_dps = nw_matrix["switch_dps"]
 
 
     class MyTopo(Topo):
@@ -199,7 +274,7 @@ class MIXTT():
             
 
         def hostAdd(self, host):
-            """ Fully adds the host to the network """
+            """ Adds the host to the network """
             h = self.addHost(host[0], ip=host[1], mac=host[3])
 
             self.addLink(host[4], h, host[5], 1)
@@ -210,6 +285,4 @@ if __name__ == '__main__':
     MIXTT().start(sys.argv)
     pass
 
-# topos = {'mytopo': (lambda: MyTopo())}
-# pdb.set_trace()
 
