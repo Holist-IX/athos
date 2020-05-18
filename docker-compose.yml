@@ -7,8 +7,13 @@ services:
     tty: true
     network_mode: "bridge"
     privileged: true
+    ports: 
+     - 80:80
     environment:
      - DISPLAY
     volumes:
      - /tmp/.X11-unix:/tmp/.X11-unix
      - /lib/modules:/lib/modules
+     - ./etc/mixtt:/etc/mixtt
+     - ./etc/faucet:/etc/faucet
+     - .:/mixtt

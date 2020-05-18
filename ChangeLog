@@ -1,0 +1,7 @@
+CHANGES
+=======
+
+* Cleaned up code to allow for packaging for docker
+* Added checker to validate config files
+* Create README.md
+* Initial commit
