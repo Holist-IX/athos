@@ -1,0 +1,12 @@
+version: '3'
+services:
+  mixtt:
+    build:
+      .
+    image: mixtt
+    privileged: true
+    volumes:
+     - ./etc/mixtt:/etc/mixtt
+     - ./etc/faucet:/etc/faucet
+     - .:/mixtt
+    entrypoint: "/mixtt/docker/entrypoint.sh"

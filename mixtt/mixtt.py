@@ -6,7 +6,6 @@ Generates a mininet topology based on the info gathered from IXP Manager and the
 faucet config generator
 """
 
-import pdb
 import mininet.node
 import sys
 import argparse
@@ -280,9 +279,12 @@ class MIXTT():
             self.addLink(host[4], h, host[5], 1)
 
 
-if __name__ == '__main__':
+def main():
     setLogLevel('info')
     MIXTT().start(sys.argv)
-    pass
+
+if __name__ == '__main__':
+    main()
+    
 
 
