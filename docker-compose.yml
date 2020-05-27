@@ -3,10 +3,12 @@ services:
   mixtt:
     build:
       .
-    image: mixtt
+    image: mixtt_base
     privileged: true
     volumes:
      - ./etc/mixtt:/etc/mixtt
      - ./etc/faucet:/etc/faucet
      - .:/mixtt
+    ports:
+     - "80:80"
     entrypoint: "/mixtt/docker/entrypoint.sh"

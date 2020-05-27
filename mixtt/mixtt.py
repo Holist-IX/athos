@@ -40,11 +40,10 @@ class MIXTT():
     def build_network(self):
         """ Builds a mininet network based on the network matrix that's been 
             given """
-        self.hosts_matrix = self.network_matrix['hosts_matrix']
-        self.switch_matrix = self.network_matrix['switch_matrix']
 
         topo = self.MyTopo( hosts_matrix=self.hosts_matrix, 
-                            switch_matrix=self.switch_matrix)
+                            switch_matrix=self.switch_matrix,
+                            switch_dps=self.switch_dps)
         self.net = Mininet(
             topo=topo, 
             controller=RemoteController(
@@ -198,12 +197,14 @@ class MIXTT():
                 if host[0]:
                     error(f"{err_msg}host {host[0]} seems to be missing parts "+
                     "in the matrix.\n")
+
                 else:
                     error(f"{err_msg} host matrix seems to be missing parts\n")
                 error(f"{err_msg}Please ensure hosts matrix is as follows:\n")
                 error(  "[hostname,\tipv4\\subnet,\tipv6\\subnet,\tmac," +
                         "\tswitchname_host_is_connected_to," + 
                         "\tport_host_is_connected_to]\n")
+                error(host)
                 sys.exit()
             malformed = False
             if "." not in host[1] or "/" not in host[1]:
@@ -228,8 +229,11 @@ class MIXTT():
         if not nw_matrix["switch_matrix"]:
             error(f"{err_msg}switch matrix doesn't have content\n")
             sys.exit()
+        if "links" not in nw_matrix["switch_matrix"]:
+            error(f'{err_msg}switch matrix is missing a links section\n')
+            sys.exit()
         
-        for switch in nw_matrix["switch_matrix"]:
+        for switch in nw_matrix["switch_matrix"]["links"]:
             if len(switch) != 4:
                 error(f"{err_msg}The switch matrix seems to be missing parts. "+
                 "please ensure format is as follows:\n"+
@@ -237,21 +241,22 @@ class MIXTT():
                 "\tswitch2_name,\tport_connecting_switch2_to_switch1]\n")
                 sys.exit()
         
-        self.network_matrix = nw_matrix
-        self.hosts_matrix = self.network_matrix["hosts_matrix"]
-        self.switch_matrix = self.network_matrix["switch_matrix"]
-        
-        if "switch_dps" not in nw_matrix:
+        if "dp_ids" not in nw_matrix["switch_matrix"]:
             warn("No \"switch_dps\" detected, dps generated in Mininet might" +
             " not match dps in faucet config\n")
         else:
-            self.switch_dps = nw_matrix["switch_dps"]
+            self.switch_dps = nw_matrix["switch_matrix"]["dp_ids"]
+
+        self.network_matrix = nw_matrix
+        self.hosts_matrix = self.network_matrix["hosts_matrix"]
+        self.switch_matrix = self.network_matrix["switch_matrix"]["links"]
+        
 
 
     class MyTopo(Topo):
         "Custom topology generator"
         
-        def __init__(self, hosts_matrix=None, switch_matrix=None):
+        def __init__(self, hosts_matrix=None, switch_matrix=None, switch_dps=None):
             "Create custom topo."
 
             # Initialize topology
@@ -261,12 +266,21 @@ class MIXTT():
             for switch in switch_matrix:
                 if switch[0] not in switch_list:
                     switch_list.append(switch[0])
+                    if switch_dps and switch[0] in switch_dps:
+                        dp_id = switch_dps[switch[0]]
+                        self.addSwitch(switch[0], dpid='%x' % dp_id)
+                    else:
+                        info("No dpid has been found")
                     self.addSwitch(switch[0])
                 if switch[2] not in switch_list:
                     switch_list.append(switch[2])
-                    self.addSwitch(switch[2])
+                    if switch_dps and switch[2] in switch_dps:
+                        dp_id = switch_dps[switch[2]]
+                        self.addSwitch(switch[2], dpid='%x' % dp_id)
+                    else:
+                        info("No dpid has been found")
+                        self.addSwitch(switch[2])
                 self.addLink(switch[0], switch[2], switch[1], switch[3])
-            
             
             for host in hosts_matrix:
                 self.hostAdd(host)
