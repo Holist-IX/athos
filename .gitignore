@@ -2,7 +2,7 @@ mixtt/topology.json
 
 ixpman_files/logs/*
 ixpman_files/output.txt
-docker/ixpmfc
+docker/ixpmfc/*
 etc/faucet/*
 
 # Created by https://www.gitignore.io/api/python,visualstudiocode
