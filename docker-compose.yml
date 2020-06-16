@@ -9,6 +9,6 @@ services:
      - ./etc/mixtt:/etc/mixtt
      - ./etc/faucet:/etc/faucet
      - .:/mixtt
-    ports:
-     - "80:80"
+     - /tmp/.X11-unix:/tmp/.X11-unix
+     - /lib/modules:/lib/modules
     entrypoint: "/mixtt/docker/entrypoint.sh"
