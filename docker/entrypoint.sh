@@ -8,13 +8,12 @@ ovs-vsctl set-manager ptcp:6640 &>> $OUT_FILE
 # bash
 faucet &>> $OUT_FILE &
 
-sleep 2
+sleep 1
 
 cd /mixtt
 
-./setup.py install &>> $OUT_FILE
+./setup.py install &>> /dev/null
 
-sleep 2
 
 mixtt &>> $OUT_FILE
 cd ixpman_files

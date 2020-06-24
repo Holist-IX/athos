@@ -23,6 +23,13 @@ class Parser():
     def start(self):
         self.raw_file = self.open_file(self.raw_file_location)
         self.find_results()
+
+        if self.packets_sent == 0:
+            print("Failure: Please check logs as no packets were sent")
+            sys.exit()
+        if self.packets_received == 0:
+            print("Failure: Please check logs as no packets were received")
+            sys.exit()
         ploss = self.calc_packet_loss(self.packets_sent, 
                                       self.packets_received, False)
         # Allow for mininet bootup problems
