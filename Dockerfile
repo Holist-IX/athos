@@ -1,4 +1,4 @@
-FROM iwaseyusuke/mininet:latest
+FROM mixtt_base:latest
 
 COPY etc/ /etc
 

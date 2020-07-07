@@ -10,16 +10,21 @@ import mininet.node
 import sys
 import argparse
 import json
+import logging
+from logging import Logger
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.link import TCLink
 from mininet.util import dumpNodeConnections
-from mininet.log import setLogLevel, info, debug, error, warn, output
+from mininet.log import setLogLevel, info, debug, error, warn, output, MininetLogger
 from mininet.node import RemoteController
+from mininet.cli import CLI
 
 from sys import argv
 
 DEFAULT_INPUT_FILE = "/etc/mixtt/topology.json"
+DEFAULT_LOG_FILE = "/mixtt/ixpman_files/output.txt"
+LOGMSGFORMAT = '%(message)s'
 
 class MIXTT():
     """ Mininet IXP topology tester. 
@@ -35,6 +40,7 @@ class MIXTT():
         self.hosts_matrix = None
         self.switch_matrix = None
         self.switch_dps = None
+        self.ping_count = 1
 
 
     def build_network(self):
@@ -57,17 +63,17 @@ class MIXTT():
         """ Sets up the network and tests that all hosts can ping each other in
             ipv4 and ipv6. Also tests failover by disabling links between 
             switches """
-        self.net.pingAll()
+        self.pingAllV4()
         self.pingAllV6()
         for link in self.switch_matrix:
             s1, s2 = link[0], link[2]
             output(f"Setting link between {s1} and {s2} down\n")
             self.net.configLinkStatus(s1, s2, "down")
-            self.net.pingAll()
+            self.pingAllV4()
             self.pingAllV6()
             output(f"Setting link between {s1} and {s2} up\n")
             self.net.configLinkStatus(s1, s2, "up")
-            self.net.pingAll()
+            self.pingAllV4()
             self.pingAllV6()
 
 
@@ -79,6 +85,35 @@ class MIXTT():
             h.cmd(f'ip -6 addr flush dev {host[0]}-eth1')
             h.cmd(f'ip -6 addr add dev {host[0]}-eth1 {host[2]}')
 
+    def pingAllV4(self):
+        """ Uses the hosts matrix and pings all the ipv6 addresses, similiar to
+            mininet's pingall format """
+        output( '*** Ping: testing ping4 reachability\n' )
+        packets = 0
+        lost = 0
+        ploss = None
+        for host in self.hosts_matrix:
+            h = self.net.getNodeByName(host[0])
+            output(f'{host[0]} -> ')
+            for dst in self.hosts_matrix:
+                if dst is host:
+                    continue
+                addr6 = dst[1].split('/')[0]
+                result = h.cmd(f'ping -c{self.ping_count} -i 0.01 {addr6}')
+                # info(result)
+                sent, received = self.net._parsePing(result)
+                packets += sent
+                lost += sent - received
+                out = 'X'
+                if received:
+                    out = dst[0]
+                output(f'{out} ')
+            output('\n')
+        if packets > 0:
+                ploss = 100.0 * lost / packets
+                received = packets - lost
+                output( "*** Results: %i%% dropped (%d/%d received)\n" %
+                        ( ploss, received, packets ) )
 
     def pingAllV6(self):
         """ Uses the hosts matrix and pings all the ipv6 addresses, similiar to
@@ -94,7 +129,8 @@ class MIXTT():
                 if dst is host:
                     continue
                 addr6 = dst[2].split('/')[0]
-                result = h.cmd(f'ping -c1 -6 {addr6}')
+                result = h.cmd(f'ping -c{self.ping_count} -i 0.01 -6 {addr6}')
+                # info(result)
                 sent, received = self.net._parsePing(result)
                 packets += sent
                 lost += sent - received
@@ -122,6 +158,13 @@ class MIXTT():
         if not args.json and not args.input:
             nw_matrix = self.open_file(DEFAULT_INPUT_FILE)
         
+        if args.ping:
+            try:
+                args.ping = int(args.ping)
+                self.ping_count = args.ping
+            except:
+                error('Ping input is not a number, using the default ping count of 1\n')
+        
         if not nw_matrix:
             error("No topology discovered. Please check input files\n")
 
@@ -130,7 +173,11 @@ class MIXTT():
             self.build_network()
             self.net.start()
             self.add_ipv6()
-            self.test_network()
+            
+            if (args.cli):
+                CLI(self.net)
+            else:
+                self.test_network()
             self.net.stop()
            
     
@@ -148,6 +195,16 @@ class MIXTT():
             '-i', '--input', 
             action='store', 
             help='input file with json topology')
+        args.add_argument(
+            '-c', '--cli',
+            action="store_true",
+            help='enables CLI for debugging'
+        )
+        args.add_argument(
+            '-p', '--ping',
+            action='store',
+            help='set the ping count used for pingalls (default is 1)'
+        )
         
         return args.parse_args(sys_args)
 
@@ -270,7 +327,7 @@ class MIXTT():
                         dp_id = switch_dps[switch[0]]
                         self.addSwitch(switch[0], dpid='%x' % dp_id)
                     else:
-                        info("No dpid has been found")
+                        error("No dpid has been found")
                     self.addSwitch(switch[0])
                 if switch[2] not in switch_list:
                     switch_list.append(switch[2])
@@ -278,7 +335,7 @@ class MIXTT():
                         dp_id = switch_dps[switch[2]]
                         self.addSwitch(switch[2], dpid='%x' % dp_id)
                     else:
-                        info("No dpid has been found")
+                        error("No dpid has been found")
                         self.addSwitch(switch[2])
                 self.addLink(switch[0], switch[2], int(switch[1]), int(switch[3]))
             
@@ -294,11 +351,19 @@ class MIXTT():
 
 
 def main():
-    setLogLevel('info')
+    setup_logging()
     MIXTT().start(sys.argv)
+
+def setup_logging():
+    logname = "mininet"
+    logger = logging.getLogger(logname)
+    logger_handler = logging.FileHandler(DEFAULT_LOG_FILE)
+    log_fmt = '%(asctime)s %(name)-6s %(levelname)-8s %(message)s'
+    logger_handler.setFormatter(
+        logging.Formatter(log_fmt, '%b %d %H:%M:%S'))
+    logger.addHandler(logger_handler)
+    logger_handler.setLevel('INFO')
+    setLogLevel('info')
 
 if __name__ == '__main__':
     main()
-    
-
-
