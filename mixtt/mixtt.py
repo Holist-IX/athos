@@ -77,13 +77,31 @@ class MIXTT():
             self.pingAllV6()
 
 
-    def add_ipv6(self):
+    def cleanup_ips(self):
+        """ Cleans up ip addresses, in particular hosts with multiple interfaces
+            and vlans """
+        host_dict = {}
+        for host in self.hosts_matrix:
+            if host[0] not in host_dict:
+                host_dict.setdefault(host[0], 0)
+            else:
+                host_dict[host[0]]+=1
+                port = host_dict[host[0]]
+                h = self.net.getNodeByName(host[0])
+                intf = h.intf(f"{host[0]}-eth{port}")
+                h.setMAC(host[3], intf)
+                h.setIP( ip=host[1].split('/')[0],
+                         prefixLen=host[1].split('/')[1],
+                         intf = intf)
+            port = host_dict[host[0]]
+            self.add_ipv6(host, port) 
+
+    def add_ipv6(self, host, port):
         """ Removes the default ipv6 address from hosts and adds the ip based on
             the hosts matrix """
-        for host in self.hosts_matrix:
-            h = self.net.getNodeByName(host[0])
-            h.cmd(f'ip -6 addr flush dev {host[0]}-eth1')
-            h.cmd(f'ip -6 addr add dev {host[0]}-eth1 {host[2]}')
+        h = self.net.getNodeByName(host[0])
+        h.cmd(f'ip -6 addr flush dev {host[0]}-eth{port}')
+        h.cmd(f'ip -6 addr add dev {host[0]}-eth{port} {host[2]}')
 
     def pingAllV4(self):
         """ Uses the hosts matrix and pings all the ipv6 addresses, similiar to
@@ -172,7 +190,7 @@ class MIXTT():
             self.check_matrix(nw_matrix)
             self.build_network()
             self.net.start()
-            self.add_ipv6()
+            self.cleanup_ips()
             
             if (args.cli):
                 CLI(self.net)
@@ -339,15 +357,20 @@ class MIXTT():
                         self.addSwitch(switch[2])
                 self.addLink(switch[0], switch[2], int(switch[1]), int(switch[3]))
             
+            host_dict = {}
             for host in hosts_matrix:
-                self.hostAdd(host)
+                if host[0] not in host_dict:
+                    host_dict.setdefault(host[0], 0)
+                else:
+                    host_dict[host[0]]+=1
+                self.hostAdd(host, host_dict[host[0]])
             
 
-        def hostAdd(self, host):
+        def hostAdd(self, host, port):
             """ Adds the host to the network """
-            h = self.addHost(host[0], ip=host[1], mac=host[3])
-
-            self.addLink(host[4], h, host[5], 1)
+            if port is 0:
+                h = self.addHost(host[0], ip=host[1], mac=host[3], intf=f"eth-{port}")
+            self.addLink(host[4], host[0], host[5], port)
 
 
 def main():

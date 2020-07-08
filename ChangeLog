@@ -1,6 +1,7 @@
 CHANGES
 =======
 
+* Added CLI and more ping flexibility
 * Added better error checking in parser
 * fixed openvswitch issues
 * Fixed a word in gitgnore
