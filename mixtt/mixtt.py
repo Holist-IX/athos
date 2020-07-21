@@ -11,7 +11,7 @@ import sys
 import argparse
 import json
 import logging
-from logging import Logger
+from logging import Logger, warning
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.link import TCLink
@@ -40,6 +40,7 @@ class MIXTT():
         self.hosts_matrix = None
         self.switch_matrix = None
         self.switch_dps = None
+        self.vlan_matrix = {}
         self.ping_count = 1
 
 
@@ -80,28 +81,61 @@ class MIXTT():
     def cleanup_ips(self):
         """ Cleans up ip addresses, in particular hosts with multiple interfaces
             and vlans """
-        host_dict = {}
+        port = 0
+        connected_sws = {}
+        
+        self.vlan_matrix["none"] = []
         for host in self.hosts_matrix:
-            if host[0] not in host_dict:
-                host_dict.setdefault(host[0], 0)
-            else:
-                host_dict[host[0]]+=1
-                port = host_dict[host[0]]
-                h = self.net.getNodeByName(host[0])
-                intf = h.intf(f"{host[0]}-eth{port}")
-                h.setMAC(host[3], intf)
-                h.setIP( ip=host[1].split('/')[0],
-                         prefixLen=host[1].split('/')[1],
-                         intf = intf)
-            port = host_dict[host[0]]
-            self.add_ipv6(host, port) 
+            port = 0
+            hname = host["name"]
+            for iface in host["interfaces"]:
+                if iface["switch"] not in connected_sws:
+                    connected_sws[iface["switch"]] = {}
+                if iface["swport"] not in connected_sws[iface["switch"]]:
+                    connected_sws[iface["switch"]][iface["swport"]] = port
+                    if "vlan" in iface:
+                        self.add_vlan(hname, iface, port)
+                    else:
+                        h = {"name": hname}
+                        if "ipv4" in iface:
+                            h["ipv4"] = iface["ipv4"]
+                        if "ipv6" in iface:
+                            self.add_ipv6(hname, f"{hname}-eth{port}", iface)
+                            h["ipv6"] = iface["ipv6"]
+                        self.vlan_matrix["none"].append(h)
+                    port+=1
+                    continue
+                if iface["switch"] in connected_sws and iface["swport"] in connected_sws[iface["switch"]]:
+                    if iface["vlan"]:
+                        self.add_vlan(host["name"], iface, 
+                                      connected_sws[iface["switch"]][iface["swport"]])
 
-    def add_ipv6(self, host, port):
+
+    def add_vlan(self, hostname, iface, port):
+        """ Adds a vlan address to the specified port """
+        self.vlan_matrix.setdefault(iface["vlan"], [])
+        h = self.net.getNodeByName(hostname)
+        pname = f"{hostname}-eth{port}"
+        vid = iface["vlan"]
+        vlan_port_name = f"eth{port}.{vid}"
+        host = {"name": hostname}
+        h.cmd(f'ip link add link {pname} name {vlan_port_name} type vlan id {vid}')
+        if "ipv4" in iface:
+            h.cmd(f"ip addr add dev {vlan_port_name} {iface['ipv4']}")
+            host["ipv4"] = iface["ipv4"]
+        if "ipv6" in iface:
+            self.add_ipv6(hostname, vlan_port_name, iface)
+            host["ipv6"] = iface["ipv6"]
+        self.vlan_matrix[iface["vlan"]].append(host)
+        h.cmd(f"ip link set dev {vlan_port_name} up")
+
+
+    def add_ipv6(self, hostname, portname, iface):
         """ Removes the default ipv6 address from hosts and adds the ip based on
             the hosts matrix """
-        h = self.net.getNodeByName(host[0])
-        h.cmd(f'ip -6 addr flush dev {host[0]}-eth{port}')
-        h.cmd(f'ip -6 addr add dev {host[0]}-eth{port} {host[2]}')
+        h = self.net.getNodeByName(hostname)
+        h.cmd(f"ip -6 addr flush dev {portname}")
+        h.cmd(f"ip -6 addr add dev {portname} {iface['ipv6']}")
 
     def pingAllV4(self):
         """ Uses the hosts matrix and pings all the ipv6 addresses, similiar to
@@ -134,7 +168,7 @@ class MIXTT():
                         ( ploss, received, packets ) )
 
     def pingAllV6(self):
-        """ Uses the hosts matrix and pings all the ipv6 addresses, similiar to
+        """ Uses the hosts matrix and pings all the ipv6 addresses, similar to
             mininet's pingall format """
         output( '*** Ping: testing ping6 reachability\n' )
         packets = 0
@@ -168,7 +202,8 @@ class MIXTT():
         nw_matrix = None
         args = self.parse_args(argv[1:])
         if args.json:
-            print("Direct JSON is not yet supported")
+            error("Direct JSON is not yet supported\n")
+            sys.exit()
             # network_matrix = self.parse_json(args.json)
         if args.input:
             nw_matrix = self.open_file(args.input)
@@ -249,7 +284,7 @@ class MIXTT():
             error(f"File not found: {input_file}\n")
             if input_file is DEFAULT_INPUT_FILE:
                 error(
-                    "Please specify a defualt topology in " +
+                    "Please specify a default topology in " +
                     "/etc/mxitt/topology.json or specify a topology file " +
                     "using the -i --input option\n")
                 sys.exit()
@@ -268,35 +303,53 @@ class MIXTT():
             error(f"{err_msg}hosts_matrix doesn't have content\n")
             sys.exit()
         for host in nw_matrix["hosts_matrix"]:
-            if len(host) != 6:
-                if host[0]:
-                    error(f"{err_msg}host {host[0]} seems to be missing parts "+
-                    "in the matrix.\n")
-
-                else:
-                    error(f"{err_msg} host matrix seems to be missing parts\n")
-                error(f"{err_msg}Please ensure hosts matrix is as follows:\n")
-                error(  "[hostname,\tipv4\\subnet,\tipv6\\subnet,\tmac," +
-                        "\tswitchname_host_is_connected_to," + 
-                        "\tport_host_is_connected_to]\n")
-                error(host)
-                sys.exit()
             malformed = False
-            if "." not in host[1] or "/" not in host[1]:
-                error(f"{err_msg}Host: {host[0]} has an error in ipv4 section\n")
-                error(f"IPv4 section: {host[1]}\n")
+            if "name" not in host:
+                error(f"{err_msg} Entry detected without a name\n")
                 malformed = True
-            if ":" not in host[2] or "/" not in host[2]:
-                error(f"{err_msg}Host: {host[0]} has an error in ipv6 section\n")
-                error(f"IPv6 section: {host[2]}\n")
+            
+            if "interfaces" not in host:
+                error(f"{err_msg} Entry detected without any interfaces\n")
                 malformed = True
-            if ":" not in host[3]:
-                error(f"{err_msg}Host: {host[0]} has an error in mac section\n")
-                error(f"mac section: {host[3]}\n")
-                malformed = True
+            
             if malformed:
                 sys.exit()
-
+            for iface in host["interfaces"]:
+                if "ipv4" in iface:
+                    if "." not in iface["ipv4"] or "/" not in iface["ipv4"]:
+                        error(f"{err_msg}Host: {host['name']} has an error in the ipv4 section\n")
+                        error(f"IPv4 section: {iface['ipv4']}\n")
+                        malformed = True
+                if "ipv6" in iface:
+                    if ":" not in iface["ipv6"] or "/" not in iface["ipv6"]:
+                        error(f"{err_msg}Host: {host['name']} has an error in ipv6 section\n")
+                        error(f"IPv6 section: {iface['ipv6']}\n")
+                        malformed = True
+                if "ipv4" not in iface and "ipv6" not in iface:
+                    error(f"{err_msg}Host: {host['name']} has neither an IPv4 or IPv6 address\n")
+                    malformed = True
+                if "mac" not in iface:
+                    if ":" not in iface["mac"]:
+                        error(f"{err_msg}Host: {host['name']} has an error in mac section\n")
+                        error(f"mac section: {iface['mac']}\n")
+                        malformed = True
+                if "mac" not in iface:
+                    error(f"{err_msg}Host: {host['name']} does not have a mac address\n")
+                    malformed = True
+                if "swport" not in iface:
+                    error(f"{err_msg}Host: {host['name']} does not have a switch port\n")
+                    malformed = True
+                if "switch" not in iface:
+                    error(f"{err_msg}Host: {host['name']} does not have a switch property\n")
+                    malformed = True
+                if "vlan" in iface:
+                    vid  = int(iface["vlan"])
+                    if vid < 0 or vid > 4095:
+                        error(f"{err_msg}Host: {host['name']} has an interface" +
+                              f"an invalid vlan id. Vid should be between 1" +
+                              f" and 4095. Vid :{vid} detected\n")
+                if malformed:
+                    sys.exit()
             
         if "switch_matrix" not in nw_matrix:
             error(f"{err_msg}No \"switch_matrix\" detected\n")
@@ -357,20 +410,28 @@ class MIXTT():
                         self.addSwitch(switch[2])
                 self.addLink(switch[0], switch[2], int(switch[1]), int(switch[3]))
             
-            host_dict = {}
             for host in hosts_matrix:
-                if host[0] not in host_dict:
-                    host_dict.setdefault(host[0], 0)
-                else:
-                    host_dict[host[0]]+=1
-                self.hostAdd(host, host_dict[host[0]])
+                self.hostAdd(host)
             
 
-        def hostAdd(self, host, port):
+        def hostAdd(self, host):
             """ Adds the host to the network """
-            if port is 0:
-                h = self.addHost(host[0], ip=host[1], mac=host[3], intf=f"eth-{port}")
-            self.addLink(host[4], host[0], host[5], port)
+            port = 0
+            connected_sws = {}
+            for iface in host["interfaces"]:
+                if iface["switch"] not in connected_sws or \
+                   iface["swport"] not in connected_sws[iface["switch"]]:
+                    if port is 0:
+                        if iface["ipv4"]:
+                            h = self.addHost(host["name"], ip=iface["ipv4"], mac=iface["mac"], intf=f"eth-{port}")
+                        else:
+                            h = self.addHost(host["name"], mac=iface["mac"], intf=f"eth-{port}")
+                if iface["switch"] not in connected_sws:
+                    connected_sws[iface["switch"]] = {}
+                if iface["swport"] not in connected_sws[iface["switch"]]:
+                    self.addLink(iface["switch"], host["name"], iface["swport"], port)
+                    connected_sws[iface["switch"]][iface["swport"]] = port
+                    port+=1
 
 
 def main():
