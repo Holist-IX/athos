@@ -41,6 +41,7 @@ class MIXTT():
         self.switch_matrix = None
         self.switch_dps = None
         self.vlan_matrix = {}
+        self.vlan_to_host_id = []
         self.ping_count = 1
 
 
@@ -64,61 +65,61 @@ class MIXTT():
         """ Sets up the network and tests that all hosts can ping each other in
             ipv4 and ipv6. Also tests failover by disabling links between 
             switches """
-        self.pingAllV4()
-        self.pingAllV6()
+        self.ping_vlan_v4()
+        self.ping_vlan_v6()
         for link in self.switch_matrix:
             s1, s2 = link[0], link[2]
             output(f"Setting link between {s1} and {s2} down\n")
             self.net.configLinkStatus(s1, s2, "down")
-            self.pingAllV4()
-            self.pingAllV6()
+            self.ping_vlan_v4()
+            self.ping_vlan_v6()
             output(f"Setting link between {s1} and {s2} up\n")
             self.net.configLinkStatus(s1, s2, "up")
-            self.pingAllV4()
-            self.pingAllV6()
+            self.ping_vlan_v4()
+            self.ping_vlan_v6()
 
 
     def cleanup_ips(self):
         """ Cleans up ip addresses, in particular hosts with multiple interfaces
             and vlans """
-        port = 0
-        connected_sws = {}
         
         self.vlan_matrix["none"] = []
-        for host in self.hosts_matrix:
-            port = 0
-            hname = host["name"]
-            for iface in host["interfaces"]:
-                if iface["switch"] not in connected_sws:
-                    connected_sws[iface["switch"]] = {}
-                if iface["swport"] not in connected_sws[iface["switch"]]:
-                    connected_sws[iface["switch"]][iface["swport"]] = port
-                    if "vlan" in iface:
-                        self.add_vlan(hname, iface, port)
-                    else:
-                        h = {"name": hname}
-                        if "ipv4" in iface:
-                            h["ipv4"] = iface["ipv4"]
-                        if "ipv6" in iface:
-                            self.add_ipv6(hname, f"{hname}-eth{port}", iface)
-                            h["ipv6"] = iface["ipv6"]
-                        self.vlan_matrix["none"].append(h)
-                    port+=1
-                    continue
-                if iface["switch"] in connected_sws and iface["swport"] in connected_sws[iface["switch"]]:
-                    if iface["vlan"]:
-                        self.add_vlan(host["name"], iface, 
-                                      connected_sws[iface["switch"]][iface["swport"]])
+        for iface in self.hosts_matrix:
+            h = {"name": iface["name"]}
+            h["port"] = f"h{iface['id']}-eth0"
+            h["id"] = iface["id"]
+            if "ipv4" in iface:
+                h["ipv4"] = iface["ipv4"]
+            if "ipv6" in iface:
+                h["ipv6"] = iface["ipv6"]
+                self.add_ipv6(iface['id'], f"h{iface['id']}-eth0", iface)
+            if "vlan" not in iface:
+                self.vlan_matrix["none"].append(h)
+        for iface in self.vlan_to_host_id:
+            h = {"name": iface["name"]}
+            h["port"] = "eth-0"
+            if "ipv4" in iface:
+                h["ipv4"] = iface["ipv4"]
+            if "ipv6" in iface:
+                h["ipv6"] = iface["ipv6"]
+            hnode = self.net.getNodeByName(f"h{iface['id']}")
+            if hnode.IP() == "127.0.0.1":
+                hnode.cmd(f"ip addr del dev h{iface['id']}-eth0 127.0.0.1")
+                hnode.cmd(f"ip -6 addr flush dev h{iface['id']}-eth0")
+            hnode.cmd(f"ip link set dev h{iface['id']}-eth0 {iface['mac']}")
+            self.add_vlan(iface["id"], iface, 0)
 
 
     def add_vlan(self, hostname, iface, port):
         """ Adds a vlan address to the specified port """
         self.vlan_matrix.setdefault(iface["vlan"], [])
-        h = self.net.getNodeByName(hostname)
-        pname = f"{hostname}-eth{port}"
+        h = self.net.getNodeByName(f"h{hostname}")
+        pname = f"h{hostname}-eth{port}"
         vid = iface["vlan"]
         vlan_port_name = f"eth{port}.{vid}"
-        host = {"name": hostname}
+        host = {"name": iface["name"]}
+        host["port"] = vlan_port_name
+        host["id"] = iface["id"]
         h.cmd(f'ip link add link {pname} name {vlan_port_name} type vlan id {vid}')
         if "ipv4" in iface:
             h.cmd(f"ip addr add dev {vlan_port_name} {iface['ipv4']}")
@@ -133,10 +134,80 @@ class MIXTT():
     def add_ipv6(self, hostname, portname, iface):
         """ Removes the default ipv6 address from hosts and adds the ip based on
             the hosts matrix """
-        h = self.net.getNodeByName(hostname)
+        h = self.net.getNodeByName(f"h{hostname}")
         h.cmd(f"ip -6 addr flush dev {portname}")
         h.cmd(f"ip -6 addr add dev {portname} {iface['ipv6']}")
 
+    def ping_vlan_v4(self):
+        """ Uses the hosts matrix and pings all the ipv6 addresses, similiar to
+            mininet's pingall format """
+        output( '*** Ping: testing ping4 reachability\n' )
+        packets = 0
+        lost = 0
+        ploss = None
+        for vlan in self.vlan_matrix:
+            output(f"Testing reachability for hosts with vlan: {vlan}\n")
+            for host in self.vlan_matrix[vlan]:
+                h = self.net.getNodeByName(f"h{host['id']}")
+                output(f'{host["name"]} -> ')
+                for dst in self.vlan_matrix[vlan]:
+                    if dst is host:
+                        continue
+                    if "ipv4" not in host:
+                        continue
+                    addr = dst['ipv4'].split('/')[0]
+                    result = h.cmd(f'ping -I {host["port"]} -c{self.ping_count} -i 0.01 {addr}')
+                    info(result)
+                    sent, received = self.net._parsePing(result)
+                    packets += sent
+                    lost += sent - received
+                    out = 'X'
+                    if received:
+                        out = dst["name"]
+                    output(f'{out} ')
+                output('\n')
+        if packets > 0:
+            ploss = 100.0 * lost / packets
+            received = packets - lost
+            output( "*** Results: %i%% dropped (%d/%d received)\n" % 
+                  ( ploss, received, packets ) )
+
+    
+    def ping_vlan_v6(self):
+        """ Uses the hosts matrix and pings all the ipv6 addresses, similiar to
+            mininet's pingall format """
+        output( '*** Ping: testing ping4 reachability\n' )
+        packets = 0
+        lost = 0
+        ploss = None
+        for vlan in self.vlan_matrix:
+            output(f"Testing reachability for hosts with vlan: {vlan}\n")
+            for host in self.vlan_matrix[vlan]:
+                h = self.net.getNodeByName(f"h{host['id']}")
+                output(f'{host["name"]} -> ')
+                for dst in self.vlan_matrix[vlan]:
+                    if dst is host:
+                        continue
+                    if "ipv6" not in host:
+                        continue
+                    addr = dst['ipv6'].split('/')[0]
+                    result = h.cmd(f'ping -I {host["port"]} -c{self.ping_count} -i 0.01 -6 {addr}')
+                    info(result)
+                    sent, received = self.net._parsePing(result)
+                    packets += sent
+                    lost += sent - received
+                    out = 'X'
+                    if received:
+                        out = dst["name"]
+                    output(f'{out} ')
+                output('\n')
+        if packets > 0:
+            ploss = 100.0 * lost / packets
+            received = packets - lost
+            output( "*** Results: %i%% dropped (%d/%d received)\n" % 
+                  ( ploss, received, packets ) )
+                        
+    # Possibly redundant code, keeping for testing purpose
     def pingAllV4(self):
         """ Uses the hosts matrix and pings all the ipv6 addresses, similiar to
             mininet's pingall format """
@@ -167,6 +238,8 @@ class MIXTT():
                 output( "*** Results: %i%% dropped (%d/%d received)\n" %
                         ( ploss, received, packets ) )
 
+    
+    # Possibly redundant code, keeping for testing purpose
     def pingAllV6(self):
         """ Uses the hosts matrix and pings all the ipv6 addresses, similar to
             mininet's pingall format """
@@ -329,13 +402,28 @@ class MIXTT():
                     error(f"{err_msg}Host: {host['name']} has neither an IPv4 or IPv6 address\n")
                     malformed = True
                 if "mac" not in iface:
+                    mac = ""
+                    for other_iface in host["interfaces"]:
+                        if iface is other_iface:
+                            continue
+
+                        if not malformed and \
+                           iface["switch"] == other_iface["switch"] and \
+                           iface["swport"] == other_iface["swport"] and \
+                           "mac" in other_iface:
+
+                            mac = other_iface["mac"]
+                            iface["mac"] = mac
+                    
+                    if not mac:
+                        error(f"{err_msg}Host: {host['name']} does not have a mac address\n")
+                        malformed = True
+                
+                if "mac" in iface:
                     if ":" not in iface["mac"]:
                         error(f"{err_msg}Host: {host['name']} has an error in mac section\n")
                         error(f"mac section: {iface['mac']}\n")
                         malformed = True
-                if "mac" not in iface:
-                    error(f"{err_msg}Host: {host['name']} does not have a mac address\n")
-                    malformed = True
                 if "swport" not in iface:
                     error(f"{err_msg}Host: {host['name']} does not have a switch port\n")
                     malformed = True
@@ -375,17 +463,81 @@ class MIXTT():
         else:
             self.switch_dps = nw_matrix["switch_matrix"]["dp_ids"]
 
-        self.network_matrix = nw_matrix
-        self.hosts_matrix = self.network_matrix["hosts_matrix"]
-        self.switch_matrix = self.network_matrix["switch_matrix"]["links"]
+        self.hosts_matrix = self.flatten_nw_matrix(nw_matrix)
+        self.switch_matrix = nw_matrix["switch_matrix"]["links"]
         
+
+    def flatten_nw_matrix(self, nw_matrix):
+        """ Flattens out the topology matrix turning each interface into a 
+            separate namespace """
+        flattened_matrix = []
+        id = 1
+        for host in nw_matrix["hosts_matrix"]:
+            hname = host["name"]
+            connected_sw = {}
+            ifaces = []
+            vlan_ifaces = []
+            untagged_ids = []
+            tagged_ids = []
+            for iface in host["interfaces"]:
+                switch = iface["switch"]
+                swport = iface["swport"]
+                if switch not in connected_sw:
+                    connected_sw[switch] = {swport:id}
+                    h = iface
+                    h["name"] = hname
+                    h["id"] = id
+                    if "vlan" not in iface:
+                        ifaces.append(h)
+                        untagged_ids.append(id)
+                    else:
+                        vlan_ifaces.append(h)
+                        tagged_ids.append(id)
+                    id+=1
+                    continue
+                if swport not in connected_sw[switch]:
+                    connected_sw[switch][swport] = id
+                    h = iface
+                    h["name"] = hname
+                    h["id"] = id
+                    if "vlan" not in iface:
+                        ifaces.append(h)
+                        untagged_ids.append(id)
+                    else:
+                        vlan_ifaces.append(h)
+                        tagged_ids.append(id)
+                    id+=1
+                    continue
+
+                tempid = connected_sw[switch][swport]
+                h = iface
+                h["name"] = hname
+                h["id"] = tempid
+                if "vlan" not in iface:
+                    ifaces.append(h)
+                    untagged_ids.append(tempid)
+                else:
+                    vlan_ifaces.append(h)
+                    tagged_ids.append(tempid)
+                id+=1
+                continue
+                
+            for iface in vlan_ifaces:
+                if iface["id"] not in untagged_ids:
+                    # To prevent interference with multiple vlans on same iface
+                    untagged_ids.append(iface["id"])
+                    ifaces.append(iface)
+            self.vlan_to_host_id.extend(vlan_ifaces)
+            flattened_matrix.extend(ifaces)
+        
+        return flattened_matrix
 
 
     class MyTopo(Topo):
-        "Custom topology generator"
+        """ Custom topology generator """
         
         def __init__(self, hosts_matrix=None, switch_matrix=None, switch_dps=None):
-            "Create custom topo."
+            """ Create a topology based on input JSON"""
 
             # Initialize topology
             Topo.__init__(self)
@@ -416,22 +568,14 @@ class MIXTT():
 
         def hostAdd(self, host):
             """ Adds the host to the network """
-            port = 0
-            connected_sws = {}
-            for iface in host["interfaces"]:
-                if iface["switch"] not in connected_sws or \
-                   iface["swport"] not in connected_sws[iface["switch"]]:
-                    if port is 0:
-                        if iface["ipv4"]:
-                            h = self.addHost(host["name"], ip=iface["ipv4"], mac=iface["mac"], intf=f"eth-{port}")
-                        else:
-                            h = self.addHost(host["name"], mac=iface["mac"], intf=f"eth-{port}")
-                if iface["switch"] not in connected_sws:
-                    connected_sws[iface["switch"]] = {}
-                if iface["swport"] not in connected_sws[iface["switch"]]:
-                    self.addLink(iface["switch"], host["name"], iface["swport"], port)
-                    connected_sws[iface["switch"]][iface["swport"]] = port
-                    port+=1
+            hname = f"h{host['id']}"
+            if "ipv4" in host and "vlan" not in host:
+                h = self.addHost( hname, ip=host["ipv4"], mac=host["mac"],
+                                  intf="eth-0")
+            else:
+                h = self.addHost( hname, mac=host["mac"], ip="127.0.0.1/32",
+                                  intf="eth-0")
+            self.addLink(host["switch"], hname, host["swport"])
 
 
 def main():
@@ -447,7 +591,7 @@ def setup_logging():
         logging.Formatter(log_fmt, '%b %d %H:%M:%S'))
     logger.addHandler(logger_handler)
     logger_handler.setLevel('INFO')
-    setLogLevel('info')
+    setLogLevel('output')
 
 if __name__ == '__main__':
     main()

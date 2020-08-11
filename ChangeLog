@@ -1,6 +1,7 @@
 CHANGES
 =======
 
+* Rework config and added vlan support
 * Added support for multiple connections from a host
 * Added CLI and more ping flexibility
 * Added better error checking in parser
