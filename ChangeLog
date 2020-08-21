@@ -1,6 +1,7 @@
 CHANGES
 =======
 
+* Added VLAN support, as well as multiple ifaces per host
 * Rework config and added vlan support
 * Added support for multiple connections from a host
 * Added CLI and more ping flexibility

@@ -11,6 +11,8 @@ import sys
 import argparse
 import json
 import logging
+import pdb
+from mixtt.umbrella_scapy import UmbrellaScapy
 from logging import Logger, warning
 from mininet.topo import Topo
 from mininet.net import Mininet
@@ -38,11 +40,13 @@ class MIXTT():
         self.net = None
         self.network_matrix = None
         self.hosts_matrix = None
-        self.switch_matrix = None
+        self.link_matrix = None
         self.switch_dps = None
         self.vlan_matrix = {}
         self.vlan_to_host_id = []
+        self.p4_switches = []
         self.ping_count = 1
+        self.no_redundancy = False
 
 
     def build_network(self):
@@ -50,8 +54,9 @@ class MIXTT():
             given """
 
         topo = self.MyTopo( hosts_matrix=self.hosts_matrix, 
-                            switch_matrix=self.switch_matrix,
-                            switch_dps=self.switch_dps)
+                            switch_matrix=self.link_matrix,
+                            switch_dps=self.switch_dps,
+                            p4_switches=self.p4_switches)
         self.net = Mininet(
             topo=topo, 
             controller=RemoteController(
@@ -67,7 +72,9 @@ class MIXTT():
             switches """
         self.ping_vlan_v4()
         self.ping_vlan_v6()
-        for link in self.switch_matrix:
+        if self.no_redundancy:
+            return
+        for link in self.link_matrix:
             s1, s2 = link[0], link[2]
             output(f"Setting link between {s1} and {s2} down\n")
             self.net.configLinkStatus(s1, s2, "down")
@@ -139,7 +146,7 @@ class MIXTT():
         h.cmd(f"ip -6 addr add dev {portname} {iface['ipv6']}")
 
     def ping_vlan_v4(self):
-        """ Uses the hosts matrix and pings all the ipv6 addresses, similiar to
+        """ Uses the hosts matrix and pings all the ipv6 addresses, similar to
             mininet's pingall format """
         output( '*** Ping: testing ping4 reachability\n' )
         packets = 0
@@ -157,7 +164,7 @@ class MIXTT():
                         continue
                     addr = dst['ipv4'].split('/')[0]
                     result = h.cmd(f'ping -I {host["port"]} -c{self.ping_count} -i 0.01 {addr}')
-                    info(result)
+                    # info(result)
                     sent, received = self.net._parsePing(result)
                     packets += sent
                     lost += sent - received
@@ -174,9 +181,9 @@ class MIXTT():
 
     
     def ping_vlan_v6(self):
-        """ Uses the hosts matrix and pings all the ipv6 addresses, similiar to
+        """ Uses the hosts matrix and pings all the ipv6 addresses, similar to
             mininet's pingall format """
-        output( '*** Ping: testing ping4 reachability\n' )
+        output( '*** Ping: testing ping6 reachability\n' )
         packets = 0
         lost = 0
         ploss = None
@@ -192,7 +199,7 @@ class MIXTT():
                         continue
                     addr = dst['ipv6'].split('/')[0]
                     result = h.cmd(f'ping -I {host["port"]} -c{self.ping_count} -i 0.01 -6 {addr}')
-                    info(result)
+                    # info(result)
                     sent, received = self.net._parsePing(result)
                     packets += sent
                     lost += sent - received
@@ -209,7 +216,7 @@ class MIXTT():
                         
     # Possibly redundant code, keeping for testing purpose
     def pingAllV4(self):
-        """ Uses the hosts matrix and pings all the ipv6 addresses, similiar to
+        """ Uses the hosts matrix and pings all the ipv6 addresses, similar to
             mininet's pingall format """
         output( '*** Ping: testing ping4 reachability\n' )
         packets = 0
@@ -223,7 +230,6 @@ class MIXTT():
                     continue
                 addr6 = dst[1].split('/')[0]
                 result = h.cmd(f'ping -c{self.ping_count} -i 0.01 {addr6}')
-                # info(result)
                 sent, received = self.net._parsePing(result)
                 packets += sent
                 lost += sent - received
@@ -255,7 +261,6 @@ class MIXTT():
                     continue
                 addr6 = dst[2].split('/')[0]
                 result = h.cmd(f'ping -c{self.ping_count} -i 0.01 -6 {addr6}')
-                # info(result)
                 sent, received = self.net._parsePing(result)
                 packets += sent
                 lost += sent - received
@@ -294,6 +299,10 @@ class MIXTT():
         if not nw_matrix:
             error("No topology discovered. Please check input files\n")
 
+        if args.no_redundancy:
+            self.no_redundancy = True
+            output('No redundancy testing mode\n')
+
         if nw_matrix:
             self.check_matrix(nw_matrix)
             self.build_network()
@@ -330,6 +339,11 @@ class MIXTT():
             '-p', '--ping',
             action='store',
             help='set the ping count used for pingalls (default is 1)'
+        )
+        args.add_argument(
+            '-n', '--no-redundancy',
+            action='store_true',
+            help='disables the link redundancy checker'
         )
         
         return args.parse_args(sys_args)
@@ -463,8 +477,10 @@ class MIXTT():
         else:
             self.switch_dps = nw_matrix["switch_matrix"]["dp_ids"]
 
+        if "p4" in nw_matrix["switch_matrix"]:
+            self.p4_switches = nw_matrix["switch_matrix"]["p4"]
         self.hosts_matrix = self.flatten_nw_matrix(nw_matrix)
-        self.switch_matrix = nw_matrix["switch_matrix"]["links"]
+        self.link_matrix = nw_matrix["switch_matrix"]["links"]
         
 
     def flatten_nw_matrix(self, nw_matrix):
@@ -536,30 +552,26 @@ class MIXTT():
     class MyTopo(Topo):
         """ Custom topology generator """
         
-        def __init__(self, hosts_matrix=None, switch_matrix=None, switch_dps=None):
+        def __init__(self, hosts_matrix=None, switch_matrix=None, 
+                     switch_dps=None, p4_switches=None):
             """ Create a topology based on input JSON"""
 
             # Initialize topology
             Topo.__init__(self)
             switch_list = []
 
+            for sw in switch_dps:
+                dp_id = switch_dps[sw]
+                switch_list.append(sw)
+                self.addSwitch(sw, dpid='%x' % dp_id)
+            if p4_switches:
+                output('Adding p4 switches:\t')
+                for sw in p4_switches:
+                    output(f'{sw}\t')
+                    self.addSwitch(sw, cls=UmbrellaScapy)
+                    switch_list.append(sw)
+                output('\n')
             for switch in switch_matrix:
-                if switch[0] not in switch_list:
-                    switch_list.append(switch[0])
-                    if switch_dps and switch[0] in switch_dps:
-                        dp_id = switch_dps[switch[0]]
-                        self.addSwitch(switch[0], dpid='%x' % dp_id)
-                    else:
-                        error("No dpid has been found")
-                    self.addSwitch(switch[0])
-                if switch[2] not in switch_list:
-                    switch_list.append(switch[2])
-                    if switch_dps and switch[2] in switch_dps:
-                        dp_id = switch_dps[switch[2]]
-                        self.addSwitch(switch[2], dpid='%x' % dp_id)
-                    else:
-                        error("No dpid has been found")
-                        self.addSwitch(switch[2])
                 self.addLink(switch[0], switch[2], int(switch[1]), int(switch[3]))
             
             for host in hosts_matrix:
@@ -570,16 +582,17 @@ class MIXTT():
             """ Adds the host to the network """
             hname = f"h{host['id']}"
             if "ipv4" in host and "vlan" not in host:
-                h = self.addHost( hname, ip=host["ipv4"], mac=host["mac"],
-                                  intf="eth-0")
+                self.addHost(hname, ip=host["ipv4"], mac=host["mac"],
+                             intf="eth-0")
             else:
-                h = self.addHost( hname, mac=host["mac"], ip="127.0.0.1/32",
+                self.addHost(hname, ip="127.0.0.1/32", mac=host["mac"],
                                   intf="eth-0")
             self.addLink(host["switch"], hname, host["swport"])
 
 
 def main():
     setup_logging()
+    # setLogLevel('output')
     MIXTT().start(sys.argv)
 
 def setup_logging():
@@ -591,7 +604,7 @@ def setup_logging():
         logging.Formatter(log_fmt, '%b %d %H:%M:%S'))
     logger.addHandler(logger_handler)
     logger_handler.setLevel('INFO')
-    setLogLevel('output')
+    setLogLevel('info')
 
 if __name__ == '__main__':
     main()
