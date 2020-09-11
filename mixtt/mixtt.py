@@ -6,13 +6,13 @@ Generates a mininet topology based on the info gathered from IXP Manager and the
 faucet config generator
 """
 
+from syslog import setlogmask
 import mininet.node
 import sys
 import argparse
 import json
 import logging
 import pdb
-from mixtt.umbrella_scapy import UmbrellaScapy
 from logging import Logger, warning
 from mininet.topo import Topo
 from mininet.net import Mininet
@@ -21,11 +21,19 @@ from mininet.util import dumpNodeConnections
 from mininet.log import setLogLevel, info, debug, error, warn, output, MininetLogger
 from mininet.node import RemoteController
 from mininet.cli import CLI
+from p4_mininet import P4Switch
+from umbrella_scapy import UmbrellaScapy
 
 from sys import argv
 
 DEFAULT_INPUT_FILE = "/etc/mixtt/topology.json"
 DEFAULT_LOG_FILE = "/mixtt/ixpman_files/output.txt"
+DEFAULT_P4_COMPILER = "p4c"
+DEFAULT_P4_OPTIONS = "--target bmv2 --arch"
+DEFAULT_P4_SWITCH = "simple_switch"
+DEFUALT_UMBRELLA_JSON = "/etc/mixtt/umbrella.json"
+
+
 LOGMSGFORMAT = '%(message)s'
 
 class MIXTT():
@@ -47,6 +55,8 @@ class MIXTT():
         self.p4_switches = []
         self.ping_count = 1
         self.no_redundancy = False
+        self.thrift_port = 9090
+        self.p4_json = DEFUALT_UMBRELLA_JSON
 
 
     def build_network(self):
@@ -277,6 +287,7 @@ class MIXTT():
 
     def start(self, argv):
         """ Starts the program """
+        setLogLevel('info')
         nw_matrix = None
         args = self.parse_args(argv[1:])
         if args.json:
@@ -298,6 +309,9 @@ class MIXTT():
         
         if not nw_matrix:
             error("No topology discovered. Please check input files\n")
+
+        if args.thrift_port:
+            self.thrift_port = args.thrift_port
 
         if args.no_redundancy:
             self.no_redundancy = True
@@ -325,25 +339,36 @@ class MIXTT():
         group.add_argument(
             '-j', '--json', 
             action='store', 
-            help='topology information as json string')
+            help='Topology information as json string')
         group.add_argument(
             '-i', '--input', 
             action='store', 
-            help='input file with json topology')
+            help='Input file with json topology')
         args.add_argument(
             '-c', '--cli',
             action="store_true",
-            help='enables CLI for debugging'
+            help='Enables CLI for debugging'
         )
         args.add_argument(
             '-p', '--ping',
             action='store',
-            help='set the ping count used for pingalls (default is 1)'
+            help='Set the ping count used for pingalls (default is 1)'
         )
         args.add_argument(
             '-n', '--no-redundancy',
             action='store_true',
-            help='disables the link redundancy checker'
+            help='Disables the link redundancy checker'
+        )
+        args.add_argument(
+            '-t', '--thrift-port',
+            action="store",
+            help="Thrift server port for p4 table updates",
+            default="9090"
+        )
+        args.add_argument(
+            '--p4-json',
+            action='store',
+            help="Config json for p4 switches"
         )
         
         return args.parse_args(sys_args)
@@ -553,7 +578,9 @@ class MIXTT():
         """ Custom topology generator """
         
         def __init__(self, hosts_matrix=None, switch_matrix=None, 
-                     switch_dps=None, p4_switches=None):
+                     switch_dps=None, p4_switches=None,
+                     sw_path=DEFAULT_P4_SWITCH,
+                     p4_json=DEFUALT_UMBRELLA_JSON):
             """ Create a topology based on input JSON"""
 
             # Initialize topology
@@ -568,11 +595,17 @@ class MIXTT():
                 output('Adding p4 switches:\t')
                 for sw in p4_switches:
                     output(f'{sw}\t')
-                    self.addSwitch(sw, cls=UmbrellaScapy)
+                    # TODO: Change to variables
+                    self.addSwitch(sw, cls=P4Switch, 
+                                   sw_path= "simple_switch",
+                                   json_path=DEFUALT_UMBRELLA_JSON,
+                                   thrift_port=9090
+                                   )
                     switch_list.append(sw)
                 output('\n')
             for switch in switch_matrix:
-                self.addLink(switch[0], switch[2], int(switch[1]), int(switch[3]))
+                self.addLink(switch[0], switch[2], 
+                             int(switch[1]), int(switch[3]))
             
             for host in hosts_matrix:
                 self.hostAdd(host)
@@ -588,23 +621,3 @@ class MIXTT():
                 self.addHost(hname, ip="127.0.0.1/32", mac=host["mac"],
                                   intf="eth-0")
             self.addLink(host["switch"], hname, host["swport"])
-
-
-def main():
-    setup_logging()
-    # setLogLevel('output')
-    MIXTT().start(sys.argv)
-
-def setup_logging():
-    logname = "mininet"
-    logger = logging.getLogger(logname)
-    logger_handler = logging.FileHandler(DEFAULT_LOG_FILE)
-    log_fmt = '%(asctime)s %(name)-6s %(levelname)-8s %(message)s'
-    logger_handler.setFormatter(
-        logging.Formatter(log_fmt, '%b %d %H:%M:%S'))
-    logger.addHandler(logger_handler)
-    logger_handler.setLevel('INFO')
-    setLogLevel('info')
-
-if __name__ == '__main__':
-    main()
