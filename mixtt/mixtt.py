@@ -546,13 +546,16 @@ class MIXTT():
                 self.addSwitch(sw, dpid='%x' % dp_id)
             if p4_switches:
                 output('Adding p4 switches:\t')
+                i = 0
                 for sw in p4_switches:
                     output(f'{sw}\t')
+                    t_port = 9090+i
+                    i=+1
                     # TODO: Change to variables
                     self.addSwitch(sw, cls=P4Switch, 
                                    sw_path= "simple_switch",
                                    json_path=DEFUALT_UMBRELLA_JSON,
-                                   thrift_port=9090
+                                   thrift_port=t_port
                                    )
                     switch_list.append(sw)
                 output('\n')
