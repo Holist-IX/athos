@@ -21,13 +21,12 @@ from mininet.util import dumpNodeConnections
 from mininet.log import setLogLevel, info, debug, error, warn, output, MininetLogger
 from mininet.node import RemoteController
 from mininet.cli import CLI
-from p4_mininet import P4Switch
-from umbrella_scapy import UmbrellaScapy
+from mixtt.p4_mininet import P4Switch
+from mixtt.umbrella_scapy import UmbrellaScapy
 
 from sys import argv
 
 DEFAULT_INPUT_FILE = "/etc/mixtt/topology.json"
-DEFAULT_LOG_FILE = "/mixtt/ixpman_files/output.txt"
 DEFAULT_P4_COMPILER = "p4c"
 DEFAULT_P4_OPTIONS = "--target bmv2 --arch"
 DEFAULT_P4_SWITCH = "simple_switch"
@@ -285,27 +284,25 @@ class MIXTT():
                 output( "*** Results: %i%% dropped (%d/%d received)\n" %
                         ( ploss, received, packets ) )
 
-    def start(self, argv):
+    def start(self, args):
         """ Starts the program """
         setLogLevel('info')
         nw_matrix = None
-        args = self.parse_args(argv[1:])
-        if args.json:
+        if args.json_topology:
             error("Direct JSON is not yet supported\n")
             sys.exit()
             # network_matrix = self.parse_json(args.json)
-        if args.input:
-            nw_matrix = self.open_file(args.input)
+        if args.topology_file:
+            nw_matrix = self.open_file(args.topology_file)
         
-        if not args.json and not args.input:
+        if not args.json_topology and not args.topology_file:
             nw_matrix = self.open_file(DEFAULT_INPUT_FILE)
         
-        if args.ping:
-            try:
-                args.ping = int(args.ping)
-                self.ping_count = args.ping
-            except:
-                error('Ping input is not a number, using the default ping count of 1\n')
+        try:
+            args.ping = int(args.ping)
+            self.ping_count = args.ping
+        except:
+            error('Ping input is not a number, using the default ping count of 1\n')
         
         if not nw_matrix:
             error("No topology discovered. Please check input files\n")
@@ -329,50 +326,6 @@ class MIXTT():
                 self.test_network()
             self.net.stop()
            
-    
-    def parse_args(self, sys_args):
-        """ Parses the arguments """
-        args = argparse.ArgumentParser( 
-            prog='mixtt',  
-            description='Mininet IXP Topology Tester')
-        group =  args.add_mutually_exclusive_group()
-        group.add_argument(
-            '-j', '--json', 
-            action='store', 
-            help='Topology information as json string')
-        group.add_argument(
-            '-i', '--input', 
-            action='store', 
-            help='Input file with json topology')
-        args.add_argument(
-            '-c', '--cli',
-            action="store_true",
-            help='Enables CLI for debugging'
-        )
-        args.add_argument(
-            '-p', '--ping',
-            action='store',
-            help='Set the ping count used for pingalls (default is 1)'
-        )
-        args.add_argument(
-            '-n', '--no-redundancy',
-            action='store_true',
-            help='Disables the link redundancy checker'
-        )
-        args.add_argument(
-            '-t', '--thrift-port',
-            action="store",
-            help="Thrift server port for p4 table updates",
-            default="9090"
-        )
-        args.add_argument(
-            '--p4-json',
-            action='store',
-            help="Config json for p4 switches"
-        )
-        
-        return args.parse_args(sys_args)
-
 
     def parse_json(self, json_string):
         """ Parses json string entered through cli """
