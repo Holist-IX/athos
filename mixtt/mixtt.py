@@ -549,7 +549,9 @@ class MIXTT():
                 i = 0
                 for sw in p4_switches:
                     output(f'{sw}\t')
-                    t_port = 9090+i
+                    # Need to allow for multiple p4 switches to be used
+                    # Can't use 9090 due to promethues clash
+                    t_port = 9190+i
                     i=+1
                     # TODO: Change to variables
                     self.addSwitch(sw, cls=P4Switch, 
