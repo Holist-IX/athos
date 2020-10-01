@@ -1,12 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 import argparse
-import logging
+from mixtt.log import get_logger, set_mininet_log_file
 from mixtt.mixtt import MIXTT
 import sys
 
-
-DEFAULT_LOG_FILE = "/var/log/mixtt/mixtt.log"
 
 def parse_args(sys_args):
     """ Parse arguments for the topology tester
@@ -73,23 +71,13 @@ def parse_args(sys_args):
 
     return args.parse_args(sys_args)
 
+
 def main():
-    setup_logging()
+
     args = parse_args(sys.argv[1:])
-
-    MIXTT().start(args)
-    
-
-def setup_logging():
-    logname = "mininet"
-    logger = logging.getLogger(logname)
-    logger_handler = logging.FileHandler('/var/log/mixtt/mixtt.log')
-    log_fmt = '%(asctime)s %(name)-6s %(levelname)-8s %(message)s'
-    logger_handler.setFormatter(
-        logging.Formatter(log_fmt, '%b %d %H:%M:%S'))
-    logger.addHandler(logger_handler)
-    logger_handler.setLevel('INFO')
-    # setLogLevel('info')
+    logger = get_logger()
+    set_mininet_log_file()
+    MIXTT().start(args, logger)
 
 if __name__ == '__main__':
     main()

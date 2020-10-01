@@ -1,6 +1,9 @@
 CHANGES
 =======
 
+* Fixed clash due to promethues using same port
+* Fixed thrift\_port with multiple p4 switches
+* Moved parse\_args to \_\_main\_\_
 * Incorporate p4 switch
 * Added a scapy switch to simulate p4 umbrella
 * Added VLAN support, as well as multiple ifaces per host
