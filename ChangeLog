@@ -1,6 +1,7 @@
 CHANGES
 =======
 
+* Cleaned up logging to work with mininet and write to file
 * Fixed clash due to promethues using same port
 * Fixed thrift\_port with multiple p4 switches
 * Moved parse\_args to \_\_main\_\_
