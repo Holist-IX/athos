@@ -8,6 +8,7 @@ faucet config generator
 
 import sys
 import json
+import time
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.node import RemoteController
@@ -72,8 +73,11 @@ class MIXTT():
             ipv4 and ipv6. Also tests failover by disabling links between 
             switches """
         self.ping_vlan_v4()
+        # Compensates for ipv6 taking some time to set up
+        time.sleep(1)
         self.ping_vlan_v6()
-        if self.no_redundancy:
+        # No redundancy mode until p4 redundancy has been tested more
+        if self.no_redundancy or self.p4_switches:
             return
         for link in self.link_matrix:
             s1, s2 = link[0], link[2]
@@ -202,7 +206,7 @@ class MIXTT():
                     if "ipv6" not in host:
                         continue
                     addr = dst['ipv6'].split('/')[0]
-                    result = h.cmd(f'ping -I {host["port"]} -c{self.ping_count} -i 0.01 -6 {addr}')
+                    result = h.cmd(f'ping6 -I {host["port"]} -c{self.ping_count} -i 0.01 {addr}')
                     self.logger.debug(result)
                     sent, received = self.net._parsePing(result)
                     packets += sent

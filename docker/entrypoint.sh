@@ -5,15 +5,11 @@ OUT_FILE=/mixtt/ixpman_files/output.txt
 service openvswitch-switch start &> $OUT_FILE
 ovs-vsctl set-manager ptcp:6640 &>> $OUT_FILE
 
-# bash
 faucet &>> $OUT_FILE &
 
 sleep 1
 
 cd /mixtt
-
-./setup.py install &>> /dev/null
-
 
 mixtt &>> $OUT_FILE
 cd ixpman_files

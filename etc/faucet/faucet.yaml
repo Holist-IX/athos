@@ -4,19 +4,15 @@ dps:
     hardware: null
     interfaces:
       1:
-        name: SCIX
+        name: h1
         acl_in: 1
         native_vlan: 100
       2:
-        name: Alpha Corp
+        name: h2
         acl_in: 1
         native_vlan: 100
-      3:
-        name: Acme Internet Access
-        acl_in: 1
-        native_vlan: 100
-      11:
-        name: 's1,port1.0.11,c101,port1.0.11'
+      101:
+        name: 'c101,port1.0.101,s1,port1.0.101'
         opstatus_reconf: false
         acl_in: 1
         native_vlan: 100
@@ -25,21 +21,51 @@ dps:
     hardware: null
     interfaces:
       1:
-        name: Beta
+        name: h3
         acl_in: 2
         native_vlan: 100
       2:
-        name: Charlie Internet Access
+        name: h4
         acl_in: 2
         native_vlan: 100
-      3:
-        name: IIJ
-        acl_in: 2
-        native_vlan: 100
-      12:
-        name: 's2,port1.0.12,c101,port1.0.12'
+      102:
+        name: 'c101,port1.0.102,s2,port1.0.102'
         opstatus_reconf: false
         acl_in: 2
+        native_vlan: 100
+  s3:
+    dp_id: 3
+    hardware: null
+    interfaces:
+      1:
+        name: h5
+        acl_in: 3
+        native_vlan: 100
+      2:
+        name: h6
+        acl_in: 3
+        native_vlan: 100
+      103:
+        name: 's3,port1.0.103,c102,port1.0.103'
+        opstatus_reconf: false
+        acl_in: 3
+        native_vlan: 100
+  s4:
+    dp_id: 11
+    hardware: null
+    interfaces:
+      1:
+        name: h7
+        acl_in: 11
+        native_vlan: 100
+      2:
+        name: h8
+        acl_in: 11
+        native_vlan: 100
+      104:
+        name: 's4,port1.0.104,c102,port1.0.104'
+        opstatus_reconf: false
+        acl_in: 11
         native_vlan: 100
 vlans:
   faucet:
@@ -50,20 +76,24 @@ acls:
     - rule:
         dl_type: '0x806'
         dl_dst: 'ff:ff:ff:ff:ff:ff'
-        arp_tpa: 10.0.0.1
+        arp_tpa: 10.0.1.1
         actions:
           output:
+            set_fields:
+              - eth_dst: '00:00:00:00:1:1'
             port: 1
     - rule:
         dl_type: '0x86DD'
         ip_proto: 58
         icmpv6_type: 135
-        ipv6_nd_target: 'fd00::1'
+        ipv6_nd_target: 'fd00::1:1'
         actions:
           output:
+            set_fields:
+              - eth_dst: '00:00:00:00:1:1'
             port: 1
     - rule:
-        dl_dst: '00:00:00:00:00:01'
+        dl_dst: '00:00:00:00:1:1'
         actions:
           output:
             port: 1
@@ -72,25 +102,29 @@ acls:
         actions:
           output:
             set_fields:
-              - eth_dst: '00:00:00:00:00:01'
+              - eth_dst: '00:00:00:00:1:1'
             port: 1
     - rule:
         dl_type: '0x806'
         dl_dst: 'ff:ff:ff:ff:ff:ff'
-        arp_tpa: 10.0.0.2
+        arp_tpa: 10.0.1.2
         actions:
           output:
+            set_fields:
+              - eth_dst: '00:00:00:00:1:2'
             port: 2
     - rule:
         dl_type: '0x86DD'
         ip_proto: 58
         icmpv6_type: 135
-        ipv6_nd_target: 'fd00::2'
+        ipv6_nd_target: 'fd00::1:2'
         actions:
           output:
+            set_fields:
+              - eth_dst: '00:00:00:00:1:2'
             port: 2
     - rule:
-        dl_dst: '00:00:00:00:00:02'
+        dl_dst: '00:00:00:00:1:2'
         actions:
           output:
             port: 2
@@ -99,131 +133,186 @@ acls:
         actions:
           output:
             set_fields:
-              - eth_dst: '00:00:00:00:00:02'
+              - eth_dst: '00:00:00:00:1:2'
             port: 2
     - rule:
         dl_type: '0x806'
         dl_dst: 'ff:ff:ff:ff:ff:ff'
-        arp_tpa: 10.0.0.9
+        arp_tpa: 10.0.2.1
         actions:
           output:
-            port: 3
+            set_fields:
+              - eth_dst: '66:01:00:00:00:00'
+            port: 101
     - rule:
         dl_type: '0x86DD'
         ip_proto: 58
         icmpv6_type: 135
-        ipv6_nd_target: 'fd00::9'
-        actions:
-          output:
-            port: 3
-    - rule:
-        dl_dst: '00:00:00:00:00:09'
-        actions:
-          output:
-            port: 3
-    - rule:
-        dl_dst: '03:00:00:00:00:00'
+        ipv6_nd_target: 'fd00::2:1'
         actions:
           output:
             set_fields:
-              - eth_dst: '00:00:00:00:00:09'
-            port: 3
+              - eth_dst: '66:01:00:00:00:00'
+            port: 101
+    - rule:
+        dl_dst: '00:00:00:00:2:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '66:01:00:00:00:00'
+            port: 101
     - rule:
         dl_type: '0x806'
         dl_dst: 'ff:ff:ff:ff:ff:ff'
-        arp_tpa: 10.0.0.3
+        arp_tpa: 10.0.2.2
         actions:
           output:
             set_fields:
-              - eth_dst: '0c:01:00:00:00:00'
-            port: 11
+              - eth_dst: '66:02:00:00:00:00'
+            port: 101
     - rule:
         dl_type: '0x86DD'
         ip_proto: 58
         icmpv6_type: 135
-        ipv6_nd_target: 'fd00::3'
+        ipv6_nd_target: 'fd00::2:2'
         actions:
           output:
             set_fields:
-              - eth_dst: '0c:01:00:00:00:00'
-            port: 11
+              - eth_dst: '66:02:00:00:00:00'
+            port: 101
     - rule:
-        dl_dst: '00:00:00:00:00:03'
+        dl_dst: '00:00:00:00:2:2'
         actions:
           output:
             set_fields:
-              - eth_dst: '0c:01:00:00:00:00'
-            port: 11
+              - eth_dst: '66:02:00:00:00:00'
+            port: 101
     - rule:
         dl_type: '0x806'
         dl_dst: 'ff:ff:ff:ff:ff:ff'
-        arp_tpa: 10.0.0.4
+        arp_tpa: 10.0.3.1
         actions:
           output:
             set_fields:
-              - eth_dst: '0c:02:00:00:00:00'
-            port: 11
+              - eth_dst: '01:67:01:00:00:00'
+            port: 101
     - rule:
         dl_type: '0x86DD'
         ip_proto: 58
         icmpv6_type: 135
-        ipv6_nd_target: 'fd00::4'
+        ipv6_nd_target: 'fd00::3:1'
         actions:
           output:
             set_fields:
-              - eth_dst: '0c:02:00:00:00:00'
-            port: 11
+              - eth_dst: '01:67:01:00:00:00'
+            port: 101
     - rule:
-        dl_dst: '00:00:00:00:00:04'
+        dl_dst: '00:00:00:00:3:1'
         actions:
           output:
             set_fields:
-              - eth_dst: '0c:02:00:00:00:00'
-            port: 11
+              - eth_dst: '01:67:01:00:00:00'
+            port: 101
     - rule:
         dl_type: '0x806'
         dl_dst: 'ff:ff:ff:ff:ff:ff'
-        arp_tpa: 10.0.0.8
+        arp_tpa: 10.0.3.2
         actions:
           output:
             set_fields:
-              - eth_dst: '0c:03:00:00:00:00'
-            port: 11
+              - eth_dst: '01:67:02:00:00:00'
+            port: 101
     - rule:
         dl_type: '0x86DD'
         ip_proto: 58
         icmpv6_type: 135
-        ipv6_nd_target: 'fd00::8'
+        ipv6_nd_target: 'fd00::3:2'
         actions:
           output:
             set_fields:
-              - eth_dst: '0c:03:00:00:00:00'
-            port: 11
+              - eth_dst: '01:67:02:00:00:00'
+            port: 101
     - rule:
-        dl_dst: '00:00:00:00:00:08'
+        dl_dst: '00:00:00:00:3:2'
         actions:
           output:
             set_fields:
-              - eth_dst: '0c:03:00:00:00:00'
-            port: 11
+              - eth_dst: '01:67:02:00:00:00'
+            port: 101
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.4.1
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:68:01:00:00:00'
+            port: 101
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::4:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:68:01:00:00:00'
+            port: 101
+    - rule:
+        dl_dst: '00:00:00:00:4:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:68:01:00:00:00'
+            port: 101
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.4.2
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:68:02:00:00:00'
+            port: 101
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::4:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:68:02:00:00:00'
+            port: 101
+    - rule:
+        dl_dst: '00:00:00:00:4:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:68:02:00:00:00'
+            port: 101
   2:
     - rule:
         dl_type: '0x806'
         dl_dst: 'ff:ff:ff:ff:ff:ff'
-        arp_tpa: 10.0.0.3
+        arp_tpa: 10.0.2.1
         actions:
           output:
+            set_fields:
+              - eth_dst: '00:00:00:00:2:1'
             port: 1
     - rule:
         dl_type: '0x86DD'
         ip_proto: 58
         icmpv6_type: 135
-        ipv6_nd_target: 'fd00::3'
+        ipv6_nd_target: 'fd00::2:1'
         actions:
           output:
+            set_fields:
+              - eth_dst: '00:00:00:00:2:1'
             port: 1
     - rule:
-        dl_dst: '00:00:00:00:00:03'
+        dl_dst: '00:00:00:00:2:1'
         actions:
           output:
             port: 1
@@ -232,25 +321,29 @@ acls:
         actions:
           output:
             set_fields:
-              - eth_dst: '00:00:00:00:00:03'
+              - eth_dst: '00:00:00:00:2:1'
             port: 1
     - rule:
         dl_type: '0x806'
         dl_dst: 'ff:ff:ff:ff:ff:ff'
-        arp_tpa: 10.0.0.4
+        arp_tpa: 10.0.2.2
         actions:
           output:
+            set_fields:
+              - eth_dst: '00:00:00:00:2:2'
             port: 2
     - rule:
         dl_type: '0x86DD'
         ip_proto: 58
         icmpv6_type: 135
-        ipv6_nd_target: 'fd00::4'
+        ipv6_nd_target: 'fd00::2:2'
         actions:
           output:
+            set_fields:
+              - eth_dst: '00:00:00:00:2:2'
             port: 2
     - rule:
-        dl_dst: '00:00:00:00:00:04'
+        dl_dst: '00:00:00:00:2:2'
         actions:
           output:
             port: 2
@@ -259,110 +352,599 @@ acls:
         actions:
           output:
             set_fields:
-              - eth_dst: '00:00:00:00:00:04'
+              - eth_dst: '00:00:00:00:2:2'
             port: 2
     - rule:
         dl_type: '0x806'
         dl_dst: 'ff:ff:ff:ff:ff:ff'
-        arp_tpa: 10.0.0.8
+        arp_tpa: 10.0.1.1
         actions:
           output:
-            port: 3
+            set_fields:
+              - eth_dst: '65:01:00:00:00:00'
+            port: 102
     - rule:
         dl_type: '0x86DD'
         ip_proto: 58
         icmpv6_type: 135
-        ipv6_nd_target: 'fd00::8'
-        actions:
-          output:
-            port: 3
-    - rule:
-        dl_dst: '00:00:00:00:00:08'
-        actions:
-          output:
-            port: 3
-    - rule:
-        dl_dst: '03:00:00:00:00:00'
+        ipv6_nd_target: 'fd00::1:1'
         actions:
           output:
             set_fields:
-              - eth_dst: '00:00:00:00:00:08'
-            port: 3
+              - eth_dst: '65:01:00:00:00:00'
+            port: 102
+    - rule:
+        dl_dst: '00:00:00:00:1:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '65:01:00:00:00:00'
+            port: 102
     - rule:
         dl_type: '0x806'
         dl_dst: 'ff:ff:ff:ff:ff:ff'
-        arp_tpa: 10.0.0.1
+        arp_tpa: 10.0.1.2
         actions:
           output:
             set_fields:
-              - eth_dst: '0b:01:00:00:00:00'
-            port: 12
+              - eth_dst: '65:02:00:00:00:00'
+            port: 102
     - rule:
         dl_type: '0x86DD'
         ip_proto: 58
         icmpv6_type: 135
-        ipv6_nd_target: 'fd00::1'
+        ipv6_nd_target: 'fd00::1:2'
         actions:
           output:
             set_fields:
-              - eth_dst: '0b:01:00:00:00:00'
-            port: 12
+              - eth_dst: '65:02:00:00:00:00'
+            port: 102
     - rule:
-        dl_dst: '00:00:00:00:00:01'
+        dl_dst: '00:00:00:00:1:2'
         actions:
           output:
             set_fields:
-              - eth_dst: '0b:01:00:00:00:00'
-            port: 12
+              - eth_dst: '65:02:00:00:00:00'
+            port: 102
     - rule:
         dl_type: '0x806'
         dl_dst: 'ff:ff:ff:ff:ff:ff'
-        arp_tpa: 10.0.0.2
+        arp_tpa: 10.0.3.1
         actions:
           output:
             set_fields:
-              - eth_dst: '0b:02:00:00:00:00'
-            port: 12
+              - eth_dst: '01:67:01:00:00:00'
+            port: 102
     - rule:
         dl_type: '0x86DD'
         ip_proto: 58
         icmpv6_type: 135
-        ipv6_nd_target: 'fd00::2'
+        ipv6_nd_target: 'fd00::3:1'
         actions:
           output:
             set_fields:
-              - eth_dst: '0b:02:00:00:00:00'
-            port: 12
+              - eth_dst: '01:67:01:00:00:00'
+            port: 102
     - rule:
-        dl_dst: '00:00:00:00:00:02'
+        dl_dst: '00:00:00:00:3:1'
         actions:
           output:
             set_fields:
-              - eth_dst: '0b:02:00:00:00:00'
-            port: 12
+              - eth_dst: '01:67:01:00:00:00'
+            port: 102
     - rule:
         dl_type: '0x806'
         dl_dst: 'ff:ff:ff:ff:ff:ff'
-        arp_tpa: 10.0.0.9
+        arp_tpa: 10.0.3.2
         actions:
           output:
             set_fields:
-              - eth_dst: '0b:03:00:00:00:00'
-            port: 12
+              - eth_dst: '01:67:02:00:00:00'
+            port: 102
     - rule:
         dl_type: '0x86DD'
         ip_proto: 58
         icmpv6_type: 135
-        ipv6_nd_target: 'fd00::9'
+        ipv6_nd_target: 'fd00::3:2'
         actions:
           output:
             set_fields:
-              - eth_dst: '0b:03:00:00:00:00'
-            port: 12
+              - eth_dst: '01:67:02:00:00:00'
+            port: 102
     - rule:
-        dl_dst: '00:00:00:00:00:09'
+        dl_dst: '00:00:00:00:3:2'
         actions:
           output:
             set_fields:
-              - eth_dst: '0b:03:00:00:00:00'
-            port: 12
+              - eth_dst: '01:67:02:00:00:00'
+            port: 102
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.4.1
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:68:01:00:00:00'
+            port: 102
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::4:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:68:01:00:00:00'
+            port: 102
+    - rule:
+        dl_dst: '00:00:00:00:4:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:68:01:00:00:00'
+            port: 102
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.4.2
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:68:02:00:00:00'
+            port: 102
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::4:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:68:02:00:00:00'
+            port: 102
+    - rule:
+        dl_dst: '00:00:00:00:4:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:68:02:00:00:00'
+            port: 102
+  3:
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.3.1
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '00:00:00:00:3:1'
+            port: 1
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::3:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '00:00:00:00:3:1'
+            port: 1
+    - rule:
+        dl_dst: '00:00:00:00:3:1'
+        actions:
+          output:
+            port: 1
+    - rule:
+        dl_dst: '01:00:00:00:00:00'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '00:00:00:00:3:1'
+            port: 1
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.3.2
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '00:00:00:00:3:2'
+            port: 2
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::3:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '00:00:00:00:3:2'
+            port: 2
+    - rule:
+        dl_dst: '00:00:00:00:3:2'
+        actions:
+          output:
+            port: 2
+    - rule:
+        dl_dst: '02:00:00:00:00:00'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '00:00:00:00:3:2'
+            port: 2
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.1.1
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:65:01:00:00:00'
+            port: 103
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::1:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:65:01:00:00:00'
+            port: 103
+    - rule:
+        dl_dst: '00:00:00:00:1:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:65:01:00:00:00'
+            port: 103
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.1.2
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:65:02:00:00:00'
+            port: 103
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::1:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:65:02:00:00:00'
+            port: 103
+    - rule:
+        dl_dst: '00:00:00:00:1:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:65:02:00:00:00'
+            port: 103
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.2.1
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:66:01:00:00:00'
+            port: 103
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::2:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:66:01:00:00:00'
+            port: 103
+    - rule:
+        dl_dst: '00:00:00:00:2:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:66:01:00:00:00'
+            port: 103
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.2.2
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:66:02:00:00:00'
+            port: 103
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::2:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:66:02:00:00:00'
+            port: 103
+    - rule:
+        dl_dst: '00:00:00:00:2:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:66:02:00:00:00'
+            port: 103
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.4.1
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '68:01:00:00:00:00'
+            port: 103
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::4:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '68:01:00:00:00:00'
+            port: 103
+    - rule:
+        dl_dst: '00:00:00:00:4:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '68:01:00:00:00:00'
+            port: 103
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.4.2
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '68:02:00:00:00:00'
+            port: 103
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::4:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '68:02:00:00:00:00'
+            port: 103
+    - rule:
+        dl_dst: '00:00:00:00:4:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '68:02:00:00:00:00'
+            port: 103
+  11:
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.4.1
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '00:00:00:00:4:1'
+            port: 1
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::4:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '00:00:00:00:4:1'
+            port: 1
+    - rule:
+        dl_dst: '00:00:00:00:4:1'
+        actions:
+          output:
+            port: 1
+    - rule:
+        dl_dst: '01:00:00:00:00:00'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '00:00:00:00:4:1'
+            port: 1
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.4.2
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '00:00:00:00:4:2'
+            port: 2
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::4:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '00:00:00:00:4:2'
+            port: 2
+    - rule:
+        dl_dst: '00:00:00:00:4:2'
+        actions:
+          output:
+            port: 2
+    - rule:
+        dl_dst: '02:00:00:00:00:00'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '00:00:00:00:4:2'
+            port: 2
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.1.1
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:65:01:00:00:00'
+            port: 104
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::1:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:65:01:00:00:00'
+            port: 104
+    - rule:
+        dl_dst: '00:00:00:00:1:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:65:01:00:00:00'
+            port: 104
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.1.2
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:65:02:00:00:00'
+            port: 104
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::1:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:65:02:00:00:00'
+            port: 104
+    - rule:
+        dl_dst: '00:00:00:00:1:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:65:02:00:00:00'
+            port: 104
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.2.1
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:66:01:00:00:00'
+            port: 104
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::2:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:66:01:00:00:00'
+            port: 104
+    - rule:
+        dl_dst: '00:00:00:00:2:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:66:01:00:00:00'
+            port: 104
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.2.2
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:66:02:00:00:00'
+            port: 104
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::2:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:66:02:00:00:00'
+            port: 104
+    - rule:
+        dl_dst: '00:00:00:00:2:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '01:66:02:00:00:00'
+            port: 104
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.3.1
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '67:01:00:00:00:00'
+            port: 104
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::3:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '67:01:00:00:00:00'
+            port: 104
+    - rule:
+        dl_dst: '00:00:00:00:3:1'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '67:01:00:00:00:00'
+            port: 104
+    - rule:
+        dl_type: '0x806'
+        dl_dst: 'ff:ff:ff:ff:ff:ff'
+        arp_tpa: 10.0.3.2
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '67:02:00:00:00:00'
+            port: 104
+    - rule:
+        dl_type: '0x86DD'
+        ip_proto: 58
+        icmpv6_type: 135
+        ipv6_nd_target: 'fd00::3:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '67:02:00:00:00:00'
+            port: 104
+    - rule:
+        dl_dst: '00:00:00:00:3:2'
+        actions:
+          output:
+            set_fields:
+              - eth_dst: '67:02:00:00:00:00'
+            port: 104

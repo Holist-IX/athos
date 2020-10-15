@@ -3,7 +3,7 @@ services:
   mixtt:
     build:
       .
-    image: mixtt_base
+    image: mixtt
     privileged: true
     volumes:
      - ./etc/mixtt:/etc/mixtt
