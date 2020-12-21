@@ -1,3 +1,8 @@
 #!/bin/bash
 cd `dirname "$0"`
-docker-compose run mixtt .
+
+if [ -n "$1" ]; then
+    docker-compose run --entrypoint /mixtt/docker/entry.sh mixtt .
+else
+    docker-compose run mixtt .
+fi

@@ -1,6 +1,8 @@
 CHANGES
 =======
 
+* Tidy up for new docker image
+* Updated to use p4 in docker
 * Cleaned up logging to work with mininet and write to file
 * Fixed clash due to promethues using same port
 * Fixed thrift\_port with multiple p4 switches

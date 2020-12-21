@@ -15,4 +15,5 @@ mixtt &>> $OUT_FILE
 cd ixpman_files
 python3 parser.py 2>&1 | tee -a $OUT_FILE
 NOW=`date +%Y_%m_%d_%H_%M_%S`
+mkdir -p logs
 cp output.txt logs/output_$NOW.log
