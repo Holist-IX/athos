@@ -9,13 +9,14 @@ faucet config generator
 import sys
 import json
 import time
+from datetime import datetime
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.node import RemoteController
 from mininet.cli import CLI
 from mininet.log import output, info, error, warn
 from mixtt.p4_mininet import P4Switch
-from datetime import datetime
+from subprocess import call
 
 from sys import argv
 
@@ -322,7 +323,10 @@ class MIXTT():
             self.build_network()
             self.net.start()
             self.cleanup_ips()
-            
+
+            if args.script:
+                self.run_start_script(args.script)
+
             if (args.cli):
                 CLI(self.net)
             else:
@@ -359,6 +363,11 @@ class MIXTT():
         
         return data
 
+    def run_start_script(self, script):
+        """ Runs specified startup script before continuing. Typical use cases 
+            would be starting controllers or loading switches with rules """
+        rc = call(script, shell=True)
+        
 
     def check_matrix(self, nw_matrix):
         """ Checks and validates the network matrix format """

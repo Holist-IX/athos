@@ -1,6 +1,7 @@
 CHANGES
 =======
 
+* Added entrypoint that allows streaming to frontend
 * Tidy up for new docker image
 * Updated to use p4 in docker
 * Cleaned up logging to work with mininet and write to file

@@ -68,6 +68,11 @@ def parse_args(sys_args):
         action='store',
         help="Set location for log file",
     )
+    args.add_argument(
+        '--script',
+        action="store",
+        help="Runs a script before doing standard testing"
+    )
 
     return args.parse_args(sys_args)
 
