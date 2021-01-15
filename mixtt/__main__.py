@@ -69,7 +69,7 @@ def parse_args(sys_args):
         help="Set location for log file",
     )
     args.add_argument(
-        '--script',
+        '-s','--script',
         action="store",
         help="Runs a script before doing standard testing"
     )
