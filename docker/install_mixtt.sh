@@ -3,11 +3,8 @@
 apt update
 apt install -y --no-install-recommends git openvswitch-switch iputils-ping mininet net-tools gcc iproute2
 apt upgrade -y
-# apt-get install --upgrade python3
 pip3 -q --no-cache-dir install --upgrade pip wheel setuptools mininet faucet
-# pip3 -q --no-cache-dir install --upgrade /mixtt
-cd ..
-pip3 install mixtt/
+pip3 install .
 ln /bin/sed /usr/bin/sed
 
 
