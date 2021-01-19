@@ -223,66 +223,6 @@ class MIXTT():
             self.log_info( "*** Results: %i%% dropped (%d/%d received)" % 
                   ( ploss, received, packets ) )
                         
-    # Possibly redundant code, keeping for testing purpose
-    def pingAllV4(self):
-        """ Uses the hosts matrix and pings all the ipv6 addresses, similar to
-            mininet's pingall format """
-        self.logger.info( '*** Ping: testing ping4 reachability\n' )
-        packets = 0
-        lost = 0
-        ploss = None
-        for host in self.hosts_matrix:
-            h = self.net.getNodeByName(host[0])
-            self.logger.info(f'{host[0]} -> ')
-            for dst in self.hosts_matrix:
-                if dst is host:
-                    continue
-                addr6 = dst[1].split('/')[0]
-                result = h.cmd(f'ping -c{self.ping_count} -i 0.01 {addr6}')
-                sent, received = self.net._parsePing(result)
-                packets += sent
-                lost += sent - received
-                out = 'X'
-                if received:
-                    out = dst[0]
-                self.logger.info(f'{out} ')
-            self.logger.info('\n')
-        if packets > 0:
-                ploss = 100.0 * lost / packets
-                received = packets - lost
-                self.logger.info( "*** Results: %i%% dropped (%d/%d received)\n" %
-                        ( ploss, received, packets ) )
-
-    
-    # Possibly redundant code, keeping for testing purpose
-    def pingAllV6(self):
-        """ Uses the hosts matrix and pings all the ipv6 addresses, similar to
-            mininet's pingall format """
-        self.logger.info( '*** Ping: testing ping6 reachability\n' )
-        packets = 0
-        lost = 0
-        ploss = None
-        for host in self.hosts_matrix:
-            h = self.net.getNodeByName(host[0])
-            self.logger.info(f'{host[0]} -> ')
-            for dst in self.hosts_matrix:
-                if dst is host:
-                    continue
-                addr6 = dst[2].split('/')[0]
-                result = h.cmd(f'ping -c{self.ping_count} -i 0.01 -6 {addr6}')
-                sent, received = self.net._parsePing(result)
-                packets += sent
-                lost += sent - received
-                out = 'X'
-                if received:
-                    out = dst[0]
-                self.logger.info(f'{out} ')
-            self.logger.info('\n')
-        if packets > 0:
-                ploss = 100.0 * lost / packets
-                received = packets - lost
-                self.logger.info( "*** Results: %i%% dropped (%d/%d received)\n" %
-                        ( ploss, received, packets ) )
 
     def start(self, args, logger):
         """ Starts the program """
