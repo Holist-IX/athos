@@ -45,13 +45,10 @@ class MIXTT():
         self.vlan_matrix = {}
         self.vlan_to_host_id = []
         self.p4_switches = []
-        self.ping_count = 1
-        self.no_redundancy = False
         self.logger = None
-        self.thrift_port = None
 
 
-    def build_network(self):
+    def build_network(self, thrift_port_base=9190):
         """ Builds a mininet network based on the network matrix that's been
             given """
 
@@ -59,7 +56,8 @@ class MIXTT():
                            switch_matrix=self.link_matrix,
                            switch_dps=self.switch_dps,
                            p4_switches=self.p4_switches,
-                           logger=self.logger)
+                           logger=self.logger,
+                           thrift_port_base=thrift_port_base)
         self.net = Mininet(
             topo=topo,
             controller=RemoteController(
@@ -69,29 +67,29 @@ class MIXTT():
             ))
 
 
-    def test_network(self):
+    def test_network(self, no_redundancy=False, ping_count=1):
         """ Sets up the network and tests that all hosts can ping each other in
             ipv4 and ipv6. Also tests failover by disabling links between
             switches """
-        self.ping_vlan_v4()
+        self.ping_vlan_v4(ping_count)
         # Compensates for ipv6 taking some time to set up
         time.sleep(1)
-        self.ping_vlan_v6()
+        self.ping_vlan_v6(ping_count)
         # No redundancy mode until p4 redundancy has been tested more
-        if self.no_redundancy or self.p4_switches:
+        if no_redundancy or self.p4_switches:
             return
         for link in self.link_matrix:
             source_switch, destination_switch = link[0], link[2]
             self.log_info(f"Setting link between {source_switch}  " +
                           f"and {destination_switch} down")
             self.net.configLinkStatus(source_switch, destination_switch, "down")
-            self.ping_vlan_v4()
-            self.ping_vlan_v6()
+            self.ping_vlan_v4(ping_count)
+            self.ping_vlan_v6(ping_count)
             self.log_info(f"Setting link between {source_switch} " +
                           f"and {destination_switch} up")
             self.net.configLinkStatus(source_switch, destination_switch, "up")
-            self.ping_vlan_v4()
-            self.ping_vlan_v6()
+            self.ping_vlan_v4(ping_count)
+            self.ping_vlan_v6(ping_count)
 
 
     def cleanup_ips(self):
@@ -153,7 +151,7 @@ class MIXTT():
         host_node.cmd(f"ip -6 addr flush dev {portname}")
         host_node.cmd(f"ip -6 addr add dev {portname} {iface['ipv6']}")
 
-    def ping_vlan_v4(self):
+    def ping_vlan_v4(self, ping_count=1):
         """ Uses the hosts matrix and pings all the ipv6 addresses, similar to
             mininet's pingall format """
         self.log_info('*** Ping: testing ping4 reachability')
@@ -173,7 +171,7 @@ class MIXTT():
                         continue
                     addr = dst['ipv4'].split('/')[0]
                     result = host_node.cmd(f'ping -I {host["port"]}' +
-                                           f' -c{self.ping_count} -i 0.01 {addr}')
+                                           f' -c{ping_count} -i 0.01 {addr}')
                     self.logger.debug(result)
                     sent, received = self.net._parsePing(result)
                     packets += sent
@@ -191,7 +189,7 @@ class MIXTT():
                           (ploss, received, packets))
 
 
-    def ping_vlan_v6(self):
+    def ping_vlan_v6(self, ping_count=1):
         """ Uses the hosts matrix and pings all the ipv6 addresses, similar to
             mininet's pingall format """
         self.log_info('*** Ping: testing ping6 reachability')
@@ -210,7 +208,7 @@ class MIXTT():
                         continue
                     addr = dst['ipv6'].split('/')[0]
                     result = host_node.cmd(f'ping6 -I {host["port"]}' +
-                                           f' -c{self.ping_count}' +
+                                           f' -c{ping_count}' +
                                            f' -i 0.01 {addr}')
                     self.logger.debug(result)
                     sent, received = self.net._parsePing(result)
@@ -232,6 +230,7 @@ class MIXTT():
         """ Starts the program """
 
         self.logger = logger
+        ping_count = 1
 
         info(f"{datetime.now().strftime('%b %d %H:%M:%S')}\n")
         info('Starting new Testing instance\n')
@@ -245,26 +244,18 @@ class MIXTT():
         if not args.json_topology and not args.topology_file:
             nw_matrix = self.open_file(DEFAULT_INPUT_FILE)
 
+        if not nw_matrix:
+            self.log_error("No topology discovered. Please check input files")
+
         try:
-            args.ping = int(args.ping)
-            self.ping_count = args.ping
+            ping_count = int(args.ping)
         except TypeError as err:
             self.log_error('Ping input is not a number,' +
                            f' using the default ping count of 1\n{err}')
 
-        if not nw_matrix:
-            self.log_error("No topology discovered. Please check input files")
-
-        if args.thrift_port:
-            self.thrift_port = args.thrift_port
-
-        if args.no_redundancy:
-            self.no_redundancy = True
-            self.log_info('No redundancy testing mode')
-
         if nw_matrix:
             self.check_matrix(nw_matrix)
-            self.build_network()
+            self.build_network(args.thrift_port)
             self.net.start()
             self.cleanup_ips()
 
@@ -274,7 +265,7 @@ class MIXTT():
             if args.cli:
                 CLI(self.net)
             else:
-                self.test_network()
+                self.test_network(args.no_redundancy, ping_count)
             self.net.stop()
 
 
@@ -307,6 +298,7 @@ class MIXTT():
 
         return data
 
+    @staticmethod
     def run_start_script(script):
         """ Runs specified startup script before continuing. Typical use cases
             would be starting controllers or loading switches with rules """
@@ -496,8 +488,8 @@ class MIXTT():
 
         return flattened_matrix
 
-
-    def to_console(self, message):
+    @staticmethod
+    def to_console(message):
         """ Outputs log message to console """
         output(message)
 
@@ -523,7 +515,8 @@ class MIXTT():
                      switch_dps=None, p4_switches=None,
                      sw_path=DEFAULT_P4_SWITCH,
                      p4_json=DEFAULT_UMBRELLA_JSON,
-                     logger=None):
+                     logger=None,
+                     thrift_port_base=9190):
             """ Create a topology based on input JSON"""
 
             # Initialize topology
@@ -542,7 +535,7 @@ class MIXTT():
                     self.log_info(f'{sw}')
                     # Need to allow for multiple p4 switches to be used
                     # Can't use 9090 due to promethues clash
-                    t_port = 9190+i
+                    t_port = thrift_port_base + i
                     i += 1
                     self.addSwitch(sw, cls=P4Switch,
                                    sw_path=sw_path,
@@ -569,7 +562,8 @@ class MIXTT():
                              intf="eth-0")
             self.addLink(host["switch"], hname, host["swport"])
 
-        def to_console(self, message):
+        @staticmethod
+        def to_console(message):
             """ Outputs log message to console """
             output(message)
 
