@@ -254,7 +254,7 @@ class MIXTT():
                            f' using the default ping count of 1\n{err}')
 
         if nw_matrix:
-            self.check_matrix(nw_matrix)
+            self.parse_config(nw_matrix)
             self.build_network(args.thrift_port)
             self.net.start()
             self.cleanup_ips()
@@ -305,17 +305,30 @@ class MIXTT():
         call(script, shell=True)
 
 
-    def check_matrix(self, nw_matrix):
-        """ Checks and validates the network matrix format """
-        err_msg = "Malformed config detected! Please check config: "
+    def parse_config(self, nw_matrix):
+        """ Parses and validates the config """
+        err_msg = "Malformed config detected!"
+        try:
+            if "hosts_matrix" not in nw_matrix:
+                raise ConfigError(f"{err_msg}No 'hosts_matrix' found\n")
+            if "switch_matrix" not in nw_matrix:
+                raise ConfigError(f"{err_msg}No 'hosts_matrix' found\n")
+        except ConfigError as err:
+            self.log_error(err)
+            sys.exit()
+        self.check_hosts_config(nw_matrix["hosts_matrix"])
+        self.check_switch_config(nw_matrix["switch_matrix"])
+        self.hosts_matrix = self.flatten_nw_matrix(nw_matrix)
 
-        if "hosts_matrix" not in nw_matrix:
-            self.log_error(f"{err_msg}No \"hosts_matrix\" is detected\n")
-            sys.exit()
-        if not nw_matrix["hosts_matrix"]:
-            self.log_error(f"{err_msg}hosts_matrix doesn't have content\n")
-            sys.exit()
-        for host in nw_matrix["hosts_matrix"]:
+
+    def check_hosts_config(self, host_matrix):
+        """ Parses and validates the hosts matrix """
+        err_msg = ("Malformed config detected in the hosts section!\n" +
+                   "Please check the config:\n")
+        if not host_matrix:
+            self.log_error(f"{err_msg} hosts_matrix doesn't have any content\n")
+
+        for host in host_matrix:
             malformed = False
             if "name" not in host:
                 self.log_error(f"{err_msg} Entry detected without a name\n")
@@ -325,102 +338,171 @@ class MIXTT():
                 self.log_error(f"{err_msg} Entry detected " +
                                "without any interfaces\n")
                 malformed = True
-
             if malformed:
                 sys.exit()
+
+            self.check_host_interfaces(err_msg, host)
+
+
+    def check_host_interfaces(self, err_msg, host):
+        """ Parse and validates the host's interfaces """
+        err_msg = err_msg + f"Host: {host['name']} has an error"
+
+        try:
+            if not host["interfaces"]:
+                raise ConfigError(f"{err_msg} interfaces section is empty")
+
             for iface in host["interfaces"]:
-                if "ipv4" in iface:
-                    if "." not in iface["ipv4"] or "/" not in iface["ipv4"]:
-                        self.log_error(f"{err_msg}Host: {host['name']} has" +
-                                       " an error in the ipv4 section\n")
-                        self.log_error(f"IPv4 section: {iface['ipv4']}\n")
-                        malformed = True
-                if "ipv6" in iface:
-                    if ":" not in iface["ipv6"] or "/" not in iface["ipv6"]:
-                        self.log_error(f"{err_msg}Host: {host['name']} has" +
-                                       " an error in ipv6 section\n")
-                        self.log_error(f"IPv6 section: {iface['ipv6']}\n")
-                        malformed = True
-                if "ipv4" not in iface and "ipv6" not in iface:
-                    self.log_error(f"{err_msg}Host: {host['name']} has" +
-                                   " neither an IPv4 or IPv6 address\n")
-                    malformed = True
-                if "mac" not in iface:
-                    mac = ""
-                    for other_iface in host["interfaces"]:
-                        if iface is other_iface:
-                            continue
-
-                        if not malformed and \
-                           iface["switch"] == other_iface["switch"] and \
-                           iface["swport"] == other_iface["swport"] and \
-                           "mac" in other_iface:
-
-                            mac = other_iface["mac"]
-                            iface["mac"] = mac
-
-                    if not mac:
-                        self.log_error(f"{err_msg}Host: {host['name']}" +
-                                       " does not have a mac address\n")
-                        malformed = True
-
-                if "mac" in iface:
-                    if ":" not in iface["mac"]:
-                        self.log_error(f"{err_msg}Host: {host['name']}" +
-                                       " has an error in mac section\n")
-                        self.log_error(f"mac section: {iface['mac']}\n")
-                        malformed = True
                 if "swport" not in iface:
-                    self.log_error(f"{err_msg}Host: {host['name']} does" +
-                                   " not have a switch port\n")
-                    malformed = True
+                    raise ConfigError(f"{err_msg}. It does not have a " +
+                                      "switch port\n")
                 if "switch" not in iface:
-                    self.log_error(f"{err_msg}Host: {host['name']} does" +
-                                   " not have a switch property\n")
-                    malformed = True
+                    raise ConfigError(f"{err_msg}. It does not have an " +
+                                      "assigned switch\n")
+                if "ipv4" in iface:
+                    self.check_ipv4_address(err_msg, iface["ipv4"])
+                if "ipv6" in iface:
+                    self.check_ipv6_address(err_msg, iface["ipv6"])
+                if "ipv4" not in iface and "ipv6" not in iface:
+                    raise ConfigError(f"{err_msg}. It has neither an IPv4" +
+                                      " or IPv6 address\n")
+                if "mac" not in iface:
+                    iface["mac"] = \
+                        self.check_for_available_mac(err_msg, iface,
+                                                     host["interfaces"])
+                if "mac" in iface:
+                    self.check_mac_address(err_msg, iface["mac"])
                 if "vlan" in iface:
-                    vid = int(iface["vlan"])
-                    if vid < 0 or vid > 4095:
-                        self.log_error(f"{err_msg}Host: {host['name']} has an" +
-                                       " interface an invalid vlan id. Vid " +
-                                       "should be between 1 and 4095. " +
-                                       f"Vid :{vid} detected\n")
-                if malformed:
-                    sys.exit()
+                    self.check_vlan_validity(err_msg, iface["vlan"])
 
-        if "switch_matrix" not in nw_matrix:
-            self.log_error(f"{err_msg}No \"switch_matrix\" detected\n")
-            sys.exit()
-        if not nw_matrix["switch_matrix"]:
-            self.log_error(f"{err_msg}switch matrix doesn't have content\n")
-            sys.exit()
-        if "links" not in nw_matrix["switch_matrix"]:
-            self.log_error(f"{err_msg}switch matrix is missing a" +
-                           " links section\n")
+        except ConfigError as err:
+            self.log_error(err)
             sys.exit()
 
-        for switch in nw_matrix["switch_matrix"]["links"]:
-            if len(switch) != 4:
-                self.log_error(f"{err_msg}The switch matrix seems to be" +
-                               " missing parts. Please ensure format is" +
-                               " as follows:\n" +
-                               "[switch1_name," +
-                               "\tport_connecting_switch1_to_switch2,"+
-                               "\tswitch2_name," +
-                               "\tport_connecting_switch2_to_switch1]\n")
-                sys.exit()
+    def check_ipv4_address(self, err_msg, v4_address):
+        """ Checks validity of ipv4 address """
+        try:
+            if not v4_address:
+                raise ConfigError(f"{err_msg} please check that ipv4 sections" +
+                                  "have addresses assigned")
+            if "." not in v4_address or "/" not in v4_address:
+                raise ConfigError(f"{err_msg} in the ipv4 section\n" +
+                                  f"IPv4 section: {v4_address}\n")
+        except ConfigError as err:
+            self.log_error(err)
+            sys.exit()
 
-        if "dp_ids" not in nw_matrix["switch_matrix"]:
-            self.logger.warning("No \"switch_dps\" detected, dps generated" +
-                                " in Mininet might not match dps in" +
-                                " faucet config\n")
-        else:
-            self.switch_dps = nw_matrix["switch_matrix"]["dp_ids"]
 
-        if "p4" in nw_matrix["switch_matrix"]:
-            self.p4_switches = nw_matrix["switch_matrix"]["p4"]
-        self.hosts_matrix = self.flatten_nw_matrix(nw_matrix)
-        self.link_matrix = nw_matrix["switch_matrix"]["links"]
+    def check_ipv6_address(self, err_msg, v6_address):
+        """ Checks validity of ipv6 address """
+        try:
+            if not v6_address:
+                raise ConfigError(f"{err_msg} please check that ipv6 sections" +
+                                  "have addresses assigned")
+            if ":" not in v6_address or "/" not in v6_address:
+                raise ConfigError(f"{err_msg} in the ipv6 section\n" +
+                                  f"IPv6 section: {v6_address}\n")
+        except ConfigError as err:
+            self.log_error(err)
+            sys.exit()
+
+
+    def check_mac_address(self, err_msg, mac_address):
+        """ Checks validity of MAC address """
+        try:
+            if not mac_address:
+                raise ConfigError(f"{err_msg} please check that MAC sections" +
+                                  "have addresses assigned")
+            if ":" not in mac_address:
+                raise ConfigError(f"{err_msg} in the MAC section. Currently " +
+                                  "only : seperated addresses are supported\n" +
+                                  f"MAC section: {mac_address}\n")
+        except ConfigError as err:
+            self.log_error(err)
+            sys.exit()
+
+
+    def check_for_available_mac(self, err_msg, iface, host_interfaces):
+        """ Checks if port another mac address is assigned to the port """
+        mac = ""
+        try:
+            for other_iface in host_interfaces:
+                if iface is other_iface:
+                    continue
+
+                if iface["switch"] == other_iface["switch"] and \
+                iface["swport"] == other_iface["swport"] and \
+                "mac" in other_iface:
+
+                    mac = other_iface["mac"]
+
+            if not mac:
+                raise ConfigError(f"{err_msg} in the mac section. " +
+                                  "No mac address was provided")
+        except ConfigError as err:
+            self.log_error(err)
+
+        return mac
+
+
+    def check_vlan_validity(self, err_msg, vlan):
+        """ Checks that the assigned vlan is a valid value """
+        try:
+            vid = int(vlan)
+            if vid < 0 or vid > 4095:
+                raise ConfigError(f"{err_msg}. Invalid vlan id(vid) detected" +
+                                  "Vid should be between 1 and 4095. " +
+                                  f"Vid: {vid} detected\n")
+        except (ConfigError, ValueError) as err:
+            self.log_error(err)
+            sys.exit()
+
+
+    def check_switch_config(self, sw_matrix):
+        """ Parses and validates the switch matrix """
+        err_msg = ("Malformed config detected in the switch section!\n" +
+                   "Please check the config:\n")
+        try:
+            if not sw_matrix:
+                raise ConfigError(f"{err_msg}Switch matrix is empty")
+            if "links" not in sw_matrix:
+                raise ConfigError(f"{err_msg}No links section found")
+            for link in sw_matrix["links"]:
+                if len(link) != 4:
+                    raise ConfigError(f"{err_msg}Invalid link found."+
+                                      "Expected link format:\n"
+                                      "[switch1_name,a,swithch2_name,b]\n" +
+                                      "Where a is the port on switch1 " +
+                                      "connected to switch2, and vice versa " +
+                                      f"for b\nLink found: {link}")
+                port_a = int(link[1])
+                port_b = int(link[3])
+
+                if port_a < 0 or port_a > 255 or port_b < 0 or port_b > 255:
+                    raise ConfigError("Invalid port number detected. Ensure" +
+                                      "that port numbers are between 0 and 255"+
+                                      f"sw1_port: {port_a}\t sw2_port:{port_b}")
+            if "dp_ids" not in sw_matrix:
+                self.log_warn(f"{err_msg}No dp_id section found, dp_ids " +
+                              "generated in Mininet might not match those in " +
+                              "controller config")
+            else:
+                for _, dp_id in sw_matrix["dp_ids"]:
+                    if not dp_id.isnumeric():
+                        raise ConfigError(f"{err_msg}Please ensure that" +
+                                          " dp_ids are valid numbers")
+                self.switch_dps = sw_matrix["dp_ids"]
+            if "p4" in sw_matrix:
+                self.p4_switches = sw_matrix["p4"]
+            self.link_matrix = sw_matrix["links"]
+
+        except ConfigError as err:
+            self.log_error(err)
+            sys.exit()
+        except ValueError as err:
+            self.log_error(f"{err_msg} Please check value of port numbers")
+            self.log_error(err)
+            sys.exit()
 
 
     def flatten_nw_matrix(self, nw_matrix):
@@ -487,6 +569,7 @@ class MIXTT():
             flattened_matrix.extend(ifaces)
 
         return flattened_matrix
+
 
     @staticmethod
     def to_console(message):
@@ -576,3 +659,7 @@ class MIXTT():
             """ Workaround to make mininet logger work with normal logger """
             error(f'{message}\n')
             self.logger.error('message')
+
+class ConfigError(Exception):
+    """ Exception handler for misconfigured configurations """
+    pass
