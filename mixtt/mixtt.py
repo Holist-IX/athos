@@ -253,9 +253,13 @@ class MIXTT():
             self.log_error('Ping input is not a number,' +
                            f' using the default ping count of 1\n{err}')
 
+        t_port = None
+        if args.thrift_port:
+            t_port = args.thrift_port
+
         if nw_matrix:
             self.parse_config(nw_matrix)
-            self.build_network(args.thrift_port)
+            self.build_network(t_port)
             self.net.start()
             self.cleanup_ips()
 
@@ -618,7 +622,7 @@ class MIXTT():
                     self.log_info(f'{sw}')
                     # Need to allow for multiple p4 switches to be used
                     # Can't use 9090 due to promethues clash
-                    t_port = thrift_port_base + i
+                    t_port = int(thrift_port_base) + int(i)
                     i += 1
                     self.addSwitch(sw, cls=P4Switch,
                                    sw_path=sw_path,
