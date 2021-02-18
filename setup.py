@@ -47,7 +47,7 @@ def setup_configs():
         else:
             raise
 
-        
+
 setup(
     name='mixtt',
     setup_requires=['pbr>=1.9', 'setuptools>=17.1'],

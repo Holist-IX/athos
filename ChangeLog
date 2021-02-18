@@ -1,6 +1,8 @@
 CHANGES
 =======
 
+* fixed issue when thirft port argument is not being used
+* Refactored and cleaned up parse config
 * Started moving away from too many instance attributes
 * Cleaned up formatting for pylint
 * Cleaned up install script for docker build
