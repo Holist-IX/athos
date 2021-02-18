@@ -2,7 +2,7 @@
 
 import argparse
 from athos.log import get_logger, set_mininet_log_file
-from athos.mixtt import ATHOS
+from athos.athos import ATHOS
 import sys
 
 
