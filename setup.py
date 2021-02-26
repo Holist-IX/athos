@@ -9,7 +9,7 @@ from pkg_resources import resource_filename
 from shutil import copyfile
 
 VERSION = 0.1
-DESCRIPTION = "Automated mininet network redundancy tester"
+DESCRIPTION = "Automated Mininet Network topology reachability and redundancy tester"
 
 
 def setup_configs():
