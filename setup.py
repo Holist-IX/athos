@@ -15,7 +15,7 @@ DESCRIPTION = "Automated Mininet Network topology reachability and redundancy te
 def setup_configs():
     """ Sets up the defualt log and config paths """
     log_dir = '/var/log/athos'
-    mixtt_log = '/var/log/athos/athos.log'
+    athos_log = '/var/log/athos/athos.log'
     mn_log = '/var/log/athos/mininet.log'
     conf_dir = '/etc/athos/'
     conf_file = '/etc/athos/topology.json'
@@ -27,8 +27,8 @@ def setup_configs():
         if not os.path.exists(log_dir):
             print(f"Creating log dir: {log_dir}")
             os.makedirs(log_dir)
-        if not os.path.isfile(mixtt_log):
-            open(mixtt_log, 'a').close()
+        if not os.path.isfile(athos_log):
+            open(athos_log, 'a').close()
         if not os.path.isfile(mn_log):
             open(mn_log, 'a').close()
         if not os.path.exists(conf_dir):
