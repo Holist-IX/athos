@@ -1,14 +1,14 @@
 version: '3'
 services:
-  mixtt:
+  athos:
     build:
       .
-    image: mixtt
+    image: athos
     privileged: true
     volumes:
-     - ./etc/mixtt:/etc/mixtt
+     - ./etc/athos:/etc/athos
      - ./etc/faucet:/etc/faucet
-     - .:/mixtt
+     - .:/athos
      - /tmp/.X11-unix:/tmp/.X11-unix
      - /lib/modules:/lib/modules
-    entrypoint: "/mixtt/docker/entrypoint.sh"
+    entrypoint: "/athos/docker/entrypoint.sh"

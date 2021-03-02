@@ -8,24 +8,27 @@ from setuptools import setup
 from pkg_resources import resource_filename
 from shutil import copyfile
 
+VERSION = 0.1
+DESCRIPTION = "Automated Mininet Network topology reachability and redundancy tester"
+
 
 def setup_configs():
     """ Sets up the defualt log and config paths """
-    log_dir = '/var/log/mixtt'
-    mixtt_log = '/var/log/mixtt/mixtt.log'
-    mn_log = '/var/log/mixtt/mininet.log'
-    conf_dir = '/etc/mixtt/'
-    conf_file = '/etc/mixtt/topology.json'
-    umbrella_json = '/etc/mixtt/umbrella.json'
-    defualt_umbrella = resource_filename(__name__, 'etc/mixtt/umbrella.json')
-    default_conf = resource_filename(__name__, 'etc/mixtt/topology.json')
+    log_dir = '/var/log/athos'
+    athos_log = '/var/log/athos/athos.log'
+    mn_log = '/var/log/athos/mininet.log'
+    conf_dir = '/etc/athos/'
+    conf_file = '/etc/athos/topology.json'
+    umbrella_json = '/etc/athos/umbrella.json'
+    defualt_umbrella = resource_filename(__name__, 'etc/athos/umbrella.json')
+    default_conf = resource_filename(__name__, 'etc/athos/topology.json')
 
     try:
         if not os.path.exists(log_dir):
             print(f"Creating log dir: {log_dir}")
             os.makedirs(log_dir)
-        if not os.path.isfile(mixtt_log):
-            open(mixtt_log, 'a').close()
+        if not os.path.isfile(athos_log):
+            open(athos_log, 'a').close()
         if not os.path.isfile(mn_log):
             open(mn_log, 'a').close()
         if not os.path.exists(conf_dir):
@@ -47,11 +50,15 @@ def setup_configs():
         else:
             raise
 
-        
+
 setup(
-    name='mixtt',
+    name='athos',
+    version=VERSION,
+    author="Christoff Visser",
+    author_email="christoff@iij.ad.jp",
     setup_requires=['pbr>=1.9', 'setuptools>=17.1'],
     python_requires='>=3.6',
+    keywords=['mininet','SDN','P4'],
     pbr=True
 )
 

@@ -16,19 +16,19 @@ from mininet.net import Mininet
 from mininet.node import RemoteController
 from mininet.cli import CLI
 from mininet.log import output, info, error, warn
-from mixtt.p4_mininet import P4Switch
+from athos.p4_mininet import P4Switch
 
 
-DEFAULT_INPUT_FILE = "/etc/mixtt/topology.json"
+DEFAULT_INPUT_FILE = "/etc/athos/topology.json"
 DEFAULT_P4_COMPILER = "p4c"
 DEFAULT_P4_OPTIONS = "--target bmv2 --arch"
 DEFAULT_P4_SWITCH = "simple_switch"
-DEFAULT_UMBRELLA_JSON = "/etc/mixtt/umbrella.json"
-DEFAULT_LOG_FILE = "/var/log/mixtt/mixtt.log"
+DEFAULT_UMBRELLA_JSON = "/etc/athos/umbrella.json"
+DEFAULT_LOG_FILE = "/var/log/athos/athos.log"
 
 LOGMSGFORMAT = '%(message)s'
 
-class MIXTT():
+class ATHOS():
     """ Mininet IXP topology tester.
 
         Takes json with topology information and builds a network based on this.
@@ -264,7 +264,7 @@ class MIXTT():
             self.cleanup_ips()
 
             if args.script:
-                MIXTT.run_start_script(args.script)
+                ATHOS.run_start_script(args.script)
 
             if args.cli:
                 CLI(self.net)

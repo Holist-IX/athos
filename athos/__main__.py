@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
 import argparse
-from mixtt.log import get_logger, set_mininet_log_file
-from mixtt.mixtt import MIXTT
+from athos.log import get_logger, set_mininet_log_file
+from athos.athos import ATHOS
 import sys
 
 
@@ -17,8 +17,8 @@ def parse_args(sys_args):
     """
 
     args = argparse.ArgumentParser(
-        prog='mixtt',
-        description='Mininet IXP Topology Tester'
+        prog='athos',
+        description='Automated mininet topology evaluator'
     )
     group = args.add_mutually_exclusive_group()
     group.add_argument(
@@ -82,7 +82,7 @@ def main():
     args = parse_args(sys.argv[1:])
     logger = get_logger()
     set_mininet_log_file()
-    MIXTT().start(args, logger)
+    ATHOS().start(args, logger)
 
 if __name__ == '__main__':
     main()

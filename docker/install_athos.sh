@@ -8,11 +8,11 @@ pip3 install .
 ln /bin/sed /usr/bin/sed
 
 
-cp /mixtt/etc/faucet/faucet.yaml /etc/faucet/faucet.yaml
-mkdir /etc/mixtt
-mkdir /var/log/mixtt
-cp /mixtt/etc/mixtt/topology.json /etc/mixtt/topology.json
-cp /mixtt/etc/mixtt/umbrella.json /etc/mixtt/umbrella.json
+cp /athos/etc/faucet/faucet.yaml /etc/faucet/faucet.yaml
+mkdir /etc/athos
+mkdir /var/log/athos
+cp /athos/etc/athos/topology.json /etc/athos/topology.json
+cp /athos/etc/athos/umbrella.json /etc/athos/umbrella.json
 mv /usr/sbin/tcpdump /usr/bin/tcpdump
 ln -s /usr/bin/tcpdump /usr/sbin/tcpdump
 

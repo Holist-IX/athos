@@ -6,8 +6,8 @@ from mininet.log import StreamHandlerNoNewline, lg, setLogLevel
 import types
 
 
-DEFAULT_LOG_FILE = "/var/log/mixtt/mixtt.log"
-DEFAULT_MN_LOG_FILE = "/var/log/mixtt/mininet.log"
+DEFAULT_LOG_FILE = "/var/log/athos/athos.log"
+DEFAULT_MN_LOG_FILE = "/var/log/athos/mininet.log"
 LOGMSGFORMAT = '%(asctime)s %(name)s %(levelname)s %(message)s'
 
 LEVELS = {  'debug': logging.DEBUG,
@@ -17,11 +17,11 @@ LEVELS = {  'debug': logging.DEBUG,
             'critical': logging.CRITICAL
 }
 
-def get_logger(log_level='info', logname='mixtt', 
+def get_logger(log_level='info', logname='athos',
     log_file=DEFAULT_LOG_FILE, console=True):
 
     log_lvl = LEVELS.get(log_level) if log_level in LEVELS else logging.INFO
-    
+
     # Needed to be able to use more than 1 log with mininet
     logging.basicConfig(
         level=log_lvl,
@@ -30,18 +30,18 @@ def get_logger(log_level='info', logname='mixtt',
 
     logger = logging.getLogger(logname)
 
-    logger_fhandler = logging.FileHandler(log_file) 
+    logger_fhandler = logging.FileHandler(log_file)
 
     logger_fhandler.setFormatter(
         logging.Formatter(LOGMSGFORMAT, '%b %d %H:%M:%S'))
     logger_fhandler.setLevel(log_lvl)
     logger.addHandler(logger_fhandler)
     logger.propagate = False
-    
+
     return logger
 
 
-def set_mininet_log_file(log_level='info', console=True, 
+def set_mininet_log_file(log_level='info', console=True,
         log_file=DEFAULT_MN_LOG_FILE):
     fh = FileHandlerNoNewLine(log_file)
     fh.setFormatter(Formatter('%(message)s'))

@@ -15,15 +15,15 @@ The currently supported methods for installing Athos are 1) using the provided d
     
     If you have docker compose installed, the simplest way would be to run the `run_docker.sh` script, you can add `output` as an optional variable if you want feedback when Athos is running. This will build the Athos docker as well as run it to ensure everything is working.
 
-    This will mount `etc/mixtt` and `etc/faucet` into the docker container.
+    This will mount `etc/athos` and `etc/faucet` into the docker container.
 
     1.2 Pure Docker
     
-    If you would prefer using just docker, you can build it using `docker build mixtt:latest .` in the install directory.
+    If you would prefer using just docker, you can build it using `docker build athos:latest .` in the install directory.
 
     To run it you can run the following:
 
-    `docker run -it --privileged mixtt`
+    `docker run -it --privileged athos`
 
     This will run Athos with the example network topology, running 4 OpenFlow Open vSwitches configured via faucet and 2 bmv2 switches running p4 compiled umbrella code.
 
@@ -43,7 +43,7 @@ The currently supported methods for installing Athos are 1) using the provided d
 
 
 ## Configuration
-The main configuration lies within `/etc/mixtt/topology.json`. This contains the topology information for Athos to emulate. A topology file can also be declared using the `-t` option. By defualt Athos will look in in `/etc/mixtt` for the topology and the P4 json files.
+The main configuration lies within `/etc/athos/topology.json`. This contains the topology information for Athos to emulate. A topology file can also be declared using the `-t` option. By defualt Athos will look in in `/etc/athos` for the topology and the P4 json files.
 
 Below is a sample config containing 2 hosts connected to 2 OpenFlow edge switches with a bmv2 switch acting as the core switch. By default Athos comes with a compiled bmv2 that does switching based on the [Umbrella concept](https://hal.archives-ouvertes.fr/hal-01862776)
 
@@ -94,13 +94,13 @@ By default Athos is designed to work with Faucet as the controller for the OpenF
 
 
 ### bmv2
-Athos by defualt uses an Umbrella core switch for it's P4 switches. This is compiled using bmv2, based on their `simple_switch` and the resulting JSON that tells the switch how to implement its packet processing. This JSON is located at `/etc/mixtt/umbrella.json` however you can use the `--p4-json` option to declare another compiled P4 json file.
+Athos by defualt uses an Umbrella core switch for it's P4 switches. This is compiled using bmv2, based on their `simple_switch` and the resulting JSON that tells the switch how to implement its packet processing. This JSON is located at `/etc/athos/umbrella.json` however you can use the `--p4-json` option to declare another compiled P4 json file.
 
 Currently there is no support for topologies with bmv2 switches running different P4 code to one another, however support could be added later if there is enough interest.
 
 ## Usage
 
-Athos can be run using `sudo mixtt`. This will start up a network based on the topology information, check reachability between hosts over ipv4 and ipv6 and per vlan. This assumes that faucet is running has been configured.
+Athos can be run using `sudo athos`. This will start up a network based on the topology information, check reachability between hosts over ipv4 and ipv6 and per vlan. This assumes that faucet is running has been configured.
 
 Below are some of the optional arguments that can be used:
 

@@ -8,12 +8,12 @@ RUN wget https://www.python.org/ftp/python/3.8.6/Python-3.8.6.tar.xz && tar -xf 
 
 FROM p4lang/behavioral-model
 
-WORKDIR /mixtt
+WORKDIR /athos
 
 COPY . .
 
 COPY --from=builder output/usr/local /usr/local/
 
-RUN ./docker/install_mixtt.sh
+RUN ./docker/install_athos.sh
 
 ENTRYPOINT ./docker/entry.sh
