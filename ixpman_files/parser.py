@@ -1,16 +1,16 @@
 #!/usr/bin/python3
 
-""" Mixtt output parser
+""" Athos output parser
 
-    Parses the output from mixtt and validates that the testing was performed
-    succesfully """
+    Parses the output from Athos and validates that the testing was performed
+    successfully """
 
 import sys
 
 class Parser():
-    """ Mixtt output parser
+    """ Athos output parser
     
-        Parsers the results from the mininet tests performed by mixtt. It will
+        Parsers the results from the mininet tests performed by Athos. It will
         then report whether the tests was performed successfully, and highlights
         any hosts that might have a problem """
 
@@ -58,12 +58,12 @@ class Parser():
             with open(input_file) as f:
                 data = [line.rstrip() for line in f]
         except (UnicodeDecodeError, PermissionError, ValueError):
-            print(f"Error: Error within the the file{input_file}. Mixtt "\
+            print(f"Error: Error within the the file{input_file}. Athos "\
                 +" might not have finished correctly")
             sys.exit()
         except (FileNotFoundError):
             print(f"Error: File {input_file} was not found. Please check that" +
-                "mixtt ran succesfully and it's output was piped into " +
+                "athos ran succesfully and it's output was piped into " +
                 f"{input_file}")
             sys.exit()
 
