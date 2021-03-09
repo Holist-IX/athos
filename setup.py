@@ -13,12 +13,12 @@ DESCRIPTION = "Automated Mininet Network topology reachability and redundancy te
 
 def setup_configs():
     """ Sets up the defualt log and config paths """
-    log_dir = '/var/log/athos'
-    athos_log = '/var/log/athos/athos.log'
-    mn_log = '/var/log/athos/mininet.log'
+    log_dir = '/var/log/athos/'
+    athos_log = os.path.join(log_dir, 'athos.log')
+    mn_log = os.path.join(log_dir, 'mininet.log')
     conf_dir = '/etc/athos/'
-    conf_file = '/etc/athos/topology.json'
-    umbrella_json = '/etc/athos/umbrella.json'
+    conf_file = os.path.join(conf_dir, 'topology.json')
+    umbrella_json = os.path.join(conf_dir, 'umbrella.json')
     defualt_umbrella = resource_filename(__name__, 'etc/athos/umbrella.json')
     default_conf = resource_filename(__name__, 'etc/athos/topology.json')
 

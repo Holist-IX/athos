@@ -1,6 +1,7 @@
 CHANGES
 =======
 
+* Always check dirs on setup
 * Fixed spelling
 * Added debugging when creating log dir
 * Create log folder if it's not present
