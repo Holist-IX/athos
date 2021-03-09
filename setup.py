@@ -8,7 +8,6 @@ from setuptools import setup
 from pkg_resources import resource_filename
 from shutil import copyfile
 
-VERSION = 0.1
 DESCRIPTION = "Automated Mininet Network topology reachability and redundancy tester"
 
 
@@ -53,7 +52,6 @@ def setup_configs():
 
 setup(
     name='athos',
-    version=VERSION,
     author="Christoff Visser",
     author_email="christoff@iij.ad.jp",
     setup_requires=['pbr>=1.9', 'setuptools>=17.1'],
