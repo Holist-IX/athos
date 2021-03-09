@@ -1,6 +1,7 @@
 CHANGES
 =======
 
+* Added debugging when creating log dir
 * Create log folder if it's not present
 * changed setup to allow for bdist\_wheel
 * Added clearer Defualt log paths
