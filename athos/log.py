@@ -29,7 +29,9 @@ def get_logger(log_level='info', logname='athos',
         level=log_lvl,
         force=True
     )
-
+    
+    if logname is DEFAULT_LOG_FILE and not os.path.exists(DEFAULT_LOG_PATH):
+        create_default_path()
     logger = logging.getLogger(logname)
 
     logger_fhandler = logging.FileHandler(log_file)

@@ -1,6 +1,8 @@
 CHANGES
 =======
 
+* changed setup to allow for bdist\_wheel
+* Added clearer Defualt log paths
 * changed handling versions
 * Removed mixtt refrences (#5)
 * Clean config files (#4)
