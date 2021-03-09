@@ -1,13 +1,15 @@
 """ Logging function for Topology tester """
 
 import logging
+import os.path
+import types
 from logging import FileHandler, Formatter, Logger, StreamHandler, debug
 from mininet.log import StreamHandlerNoNewline, lg, setLogLevel
-import types
 
 
-DEFAULT_LOG_FILE = "/var/log/athos/athos.log"
-DEFAULT_MN_LOG_FILE = "/var/log/athos/mininet.log"
+DEFAULT_LOG_PATH = "/var/log/athos"
+DEFAULT_LOG_FILE = DEFAULT_LOG_PATH + "/athos.log"
+DEFAULT_MN_LOG_FILE = DEFAULT_LOG_PATH + "/mininet.log"
 LOGMSGFORMAT = '%(asctime)s %(name)s %(levelname)s %(message)s'
 
 LEVELS = {  'debug': logging.DEBUG,

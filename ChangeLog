@@ -1,6 +1,12 @@
 CHANGES
 =======
 
+* changed handling versions
+* Removed mixtt refrences (#5)
+* Clean config files (#4)
+* Cleaned up docker starting script (#3)
+* Added LICENSE
+* Refactor to athos (#2)
 * fixed issue when thirft port argument is not being used
 * Refactored and cleaned up parse config
 * Started moving away from too many instance attributes
