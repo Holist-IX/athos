@@ -1,6 +1,7 @@
 CHANGES
 =======
 
+* Increased PEP compatibilty when creating folders
 * Always check dirs on setup
 * Fixed spelling
 * Added debugging when creating log dir
