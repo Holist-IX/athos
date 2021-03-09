@@ -60,5 +60,5 @@ setup(
     pbr=True
 )
 
-if 'install' in sys.argv:
+if 'install' in sys.argv or 'bdist_wheel' in sys.argv:
     setup_configs()

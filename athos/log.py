@@ -1,7 +1,7 @@
 """ Logging function for Topology tester """
 
 import logging
-import os.path
+import os
 import types
 from logging import FileHandler, Formatter, Logger, StreamHandler, debug
 from mininet.log import StreamHandlerNoNewline, lg, setLogLevel
@@ -54,6 +54,18 @@ def set_mininet_log_file(log_level='info', console=True,
     if not console:
         lg.handlers = [
             h for h in lg.handlers if not isinstance(h, StreamHandlerNoNewline)]
+            
+
+def create_default_path():
+    """ Creates the folder for the default log path """
+    
+    if os.path.exists(DEFAULT_LOG_PATH):
+        return
+    else:
+        print("Default log path not found creating")
+        os.makedirs(DEFAULT_LOG_PATH)
+        return
+        
 
 class FileHandlerNoNewLine(logging.FileHandler ):
     """ FileHandler that doesn't print newlines by default
