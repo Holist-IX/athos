@@ -30,7 +30,7 @@ def get_logger(log_level='info', logname='athos',
         force=True
     )
     
-    if logname is DEFAULT_LOG_FILE and not os.path.exists(DEFAULT_LOG_PATH):
+    if logname is DEFAULT_LOG_FILE:
         create_default_path()
     logger = logging.getLogger(logname)
 
@@ -61,7 +61,7 @@ def set_mininet_log_file(log_level='info', console=True,
 def create_default_path():
     """ Creates the folder for the default log path """
     
-    if os.path.exists(DEFAULT_LOG_PATH):
+    if os.path.exists(DEFAULT_LOG_PATH) and os.path.isfile(DEFAULT_LOG_FILE):
         return
     else:
         print("Default log path not found creating")
