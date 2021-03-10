@@ -1,13 +1,14 @@
 """ Logging function for Topology tester """
 
 import logging
+import types
 from logging import FileHandler, Formatter, Logger, StreamHandler, debug
 from mininet.log import StreamHandlerNoNewline, lg, setLogLevel
-import types
 
 
-DEFAULT_LOG_FILE = "/var/log/athos/athos.log"
-DEFAULT_MN_LOG_FILE = "/var/log/athos/mininet.log"
+DEFAULT_LOG_PATH = "/var/log/athos"
+DEFAULT_LOG_FILE = DEFAULT_LOG_PATH + "/athos.log"
+DEFAULT_MN_LOG_FILE = DEFAULT_LOG_PATH + "/mininet.log"
 LOGMSGFORMAT = '%(asctime)s %(name)s %(levelname)s %(message)s'
 
 LEVELS = {  'debug': logging.DEBUG,
@@ -27,7 +28,7 @@ def get_logger(log_level='info', logname='athos',
         level=log_lvl,
         force=True
     )
-
+    
     logger = logging.getLogger(logname)
 
     logger_fhandler = logging.FileHandler(log_file)
@@ -52,6 +53,7 @@ def set_mininet_log_file(log_level='info', console=True,
     if not console:
         lg.handlers = [
             h for h in lg.handlers if not isinstance(h, StreamHandlerNoNewline)]
+
 
 class FileHandlerNoNewLine(logging.FileHandler ):
     """ FileHandler that doesn't print newlines by default

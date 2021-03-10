@@ -8,18 +8,17 @@ from setuptools import setup
 from pkg_resources import resource_filename
 from shutil import copyfile
 
-VERSION = 0.1
 DESCRIPTION = "Automated Mininet Network topology reachability and redundancy tester"
 
 
 def setup_configs():
     """ Sets up the defualt log and config paths """
-    log_dir = '/var/log/athos'
-    athos_log = '/var/log/athos/athos.log'
-    mn_log = '/var/log/athos/mininet.log'
+    log_dir = '/var/log/athos/'
+    athos_log = os.path.join(log_dir, 'athos.log')
+    mn_log = os.path.join(log_dir, 'mininet.log')
     conf_dir = '/etc/athos/'
-    conf_file = '/etc/athos/topology.json'
-    umbrella_json = '/etc/athos/umbrella.json'
+    conf_file = os.path.join(conf_dir, 'topology.json')
+    umbrella_json = os.path.join(conf_dir, 'umbrella.json')
     defualt_umbrella = resource_filename(__name__, 'etc/athos/umbrella.json')
     default_conf = resource_filename(__name__, 'etc/athos/topology.json')
 
@@ -53,7 +52,6 @@ def setup_configs():
 
 setup(
     name='athos',
-    version=VERSION,
     author="Christoff Visser",
     author_email="christoff@iij.ad.jp",
     setup_requires=['pbr>=1.9', 'setuptools>=17.1'],
@@ -62,5 +60,4 @@ setup(
     pbr=True
 )
 
-if 'install' in sys.argv:
-    setup_configs()
+setup_configs()
