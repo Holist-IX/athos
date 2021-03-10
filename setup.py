@@ -59,7 +59,5 @@ setup(
     keywords=['mininet','SDN','P4'],
     pbr=True
 )
-setup_configs()
 
-# if 'install' in sys.argv or 'bdist_wheel' in sys.argv:
-#     setup_configs()
+setup_configs()
