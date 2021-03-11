@@ -491,8 +491,8 @@ class ATHOS():
                               "generated in Mininet might not match those in " +
                               "controller config")
             else:
-                for _, dp_id in sw_matrix["dp_ids"]:
-                    if not dp_id.isnumeric():
+                for _, dp_id in sw_matrix["dp_ids"].items():
+                    if not hex(dp_id):
                         raise ConfigError(f"{err_msg}Please ensure that" +
                                           " dp_ids are valid numbers")
                 self.switch_dps = sw_matrix["dp_ids"]
