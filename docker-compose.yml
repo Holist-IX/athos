@@ -12,3 +12,16 @@ services:
      - /tmp/.X11-unix:/tmp/.X11-unix
      - /lib/modules:/lib/modules
     entrypoint: "/athos/docker/entry.sh"
+  athosUrge:
+    build:
+      .
+    image: belthazaar/athos
+    privileged: true
+    volumes:
+     - ./urge:/urge
+     - ./etc/athos:/etc/athos
+     - ./etc/faucet:/etc/faucet
+     - .:/athos
+     - /tmp/.X11-unix:/tmp/.X11-unix
+     - /lib/modules:/lib/modules
+    entrypoint: "/athos/docker/entry_urge.sh"
