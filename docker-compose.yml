@@ -3,7 +3,7 @@ services:
   athos:
     build:
       .
-    image: athos
+    image: belthazaar/athos
     privileged: true
     volumes:
      - ./etc/athos:/etc/athos
@@ -11,4 +11,4 @@ services:
      - .:/athos
      - /tmp/.X11-unix:/tmp/.X11-unix
      - /lib/modules:/lib/modules
-    entrypoint: "/athos/docker/entrypoint.sh"
+    entrypoint: "/athos/docker/entry.sh"
