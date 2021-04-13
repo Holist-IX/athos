@@ -128,20 +128,20 @@ class ATHOS():
         host_node = self.net.getNodeByName(f"h{hostname}")
         phase = f"h{hostname}-eth{port}"
         vid = iface["vlan"]
-        vlan_port_name = f"eth{port}.{vid}"
+        vlan_port_name = f"eth{port}.{vid}" if iface['tagged'] else f'h{iface["id"]}-eth0'
         host = {"name": iface["name"]}
         host["port"] = vlan_port_name
         host["id"] = iface["id"]
-        host_node.cmd(f'ip link add link {phase} name ' +
-                      f'{vlan_port_name} type vlan id {vid}')
+        if iface["tagged"]:
+            host_node.cmd(f'ip link add link {phase} name ' +
+                        f'{vlan_port_name} type vlan id {vid}')
         if "ipv4" in iface:
             host_node.cmd(f"ip addr add dev {vlan_port_name} {iface['ipv4']}")
-            host["ipv4"] = iface["ipv4"]
         if "ipv6" in iface:
             self.add_ipv6(hostname, vlan_port_name, iface)
-            host["ipv6"] = iface["ipv6"]
+        if iface["tagged"]:
+            host_node.cmd(f"ip link set dev {vlan_port_name} up")
         self.vlan_matrix[iface["vlan"]].append(host)
-        host_node.cmd(f"ip link set dev {vlan_port_name} up")
 
 
     def add_ipv6(self, hostname, portname, iface):
