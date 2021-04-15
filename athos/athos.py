@@ -137,8 +137,10 @@ class ATHOS():
                         f'{vlan_port_name} type vlan id {vid}')
         if "ipv4" in iface:
             host_node.cmd(f"ip addr add dev {vlan_port_name} {iface['ipv4']}")
+            host["ipv4"] = iface["ipv4"]
         if "ipv6" in iface:
             self.add_ipv6(hostname, vlan_port_name, iface)
+            host["ipv6"] = iface["ipv6"]
         if iface["tagged"]:
             host_node.cmd(f"ip link set dev {vlan_port_name} up")
         self.vlan_matrix[iface["vlan"]].append(host)
@@ -162,12 +164,14 @@ class ATHOS():
             self.log_info(f"Testing reachability for hosts with vlan: {vlan}")
             for host in self.vlan_matrix[vlan]:
                 results = []
+                if "ipv4" not in host:
+                    continue
                 host_node = self.net.getNodeByName(f"h{host['id']}")
                 self.to_console(f'{host["name"]} -> ')
                 for dst in self.vlan_matrix[vlan]:
                     if dst is host:
                         continue
-                    if "ipv4" not in host:
+                    if "ipv4" not in dst:
                         continue
                     addr = dst['ipv4'].split('/')[0]
                     result = host_node.cmd(f'ping -I {host["port"]}' +
@@ -199,12 +203,14 @@ class ATHOS():
         for vlan in self.vlan_matrix:
             self.log_info(f"Testing reachability for hosts with vlan: {vlan}")
             for host in self.vlan_matrix[vlan]:
+                if "ipv6" not in host:
+                    continue
                 host_node = self.net.getNodeByName(f"h{host['id']}")
                 output(f'{host["name"]} -> ')
                 for dst in self.vlan_matrix[vlan]:
                     if dst is host:
                         continue
-                    if "ipv6" not in host:
+                    if "ipv6" not in dst:
                         continue
                     addr = dst['ipv6'].split('/')[0]
                     result = host_node.cmd(f'ping6 -I {host["port"]}' +
@@ -642,6 +648,9 @@ class ATHOS():
             """ Adds the host to the network """
             hname = f"h{host['id']}"
             if "ipv4" in host and "vlan" not in host:
+                self.addHost(hname, ip=host["ipv4"], mac=host["mac"],
+                             intf="eth-0")
+            if "ipv4" in host and "tagged" in host and not host["tagged"]:
                 self.addHost(hname, ip=host["ipv4"], mac=host["mac"],
                              intf="eth-0")
             else:
