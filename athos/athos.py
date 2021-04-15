@@ -137,6 +137,7 @@ class ATHOS():
                         f'{vlan_port_name} type vlan id {vid}')
         if "ipv4" in iface:
             host_node.cmd(f"ip addr add dev {vlan_port_name} {iface['ipv4']}")
+            host["ipv4"] = iface["ipv4"]
         if "ipv6" in iface:
             self.add_ipv6(hostname, vlan_port_name, iface)
             host["ipv6"] = iface["ipv6"]

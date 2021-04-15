@@ -3,7 +3,7 @@ cd `dirname "$0"`
 
 if [ -n "$1" ]; then
     if [ "$1" == 'urge' ]; then
-        docker-compose run --entrypoint /athos/docker/entry_urge.sh athosurge .
+        docker-compose run --entrypoint /athos/docker/entry_urge.sh athosUrge .
     else
         docker-compose run athos .
     fi
