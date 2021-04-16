@@ -143,6 +143,7 @@ class ATHOS():
             host["ipv6"] = iface["ipv6"]
         if iface["tagged"]:
             host_node.cmd(f"ip link set dev {vlan_port_name} up")
+            host_node.cmd(f"ip link set address {iface['mac']} dev {vlan_port_name}")
         self.vlan_matrix[iface["vlan"]].append(host)
 
 
