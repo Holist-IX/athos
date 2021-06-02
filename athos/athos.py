@@ -46,6 +46,7 @@ class ATHOS():
         self.vlan_to_host_id = []
         self.p4_switches = []
         self.logger = None
+        self.unmanaged_switches = []
 
 
     def build_network(self, thrift_port_base=9190):
@@ -56,6 +57,7 @@ class ATHOS():
                            switch_matrix=self.link_matrix,
                            switch_dps=self.switch_dps,
                            p4_switches=self.p4_switches,
+                           unmanaged_switches=self.unmanaged_switches,
                            logger=self.logger,
                            thrift_port_base=thrift_port_base)
         self.net = Mininet(
@@ -505,6 +507,8 @@ class ATHOS():
                 self.switch_dps = sw_matrix["dp_ids"]
             if "p4" in sw_matrix:
                 self.p4_switches = sw_matrix["p4"]
+            if "unmanaged_switches" in sw_matrix:
+                self.unmanaged_switches = sw_matrix["unmanaged_switches"]
             self.link_matrix = sw_matrix["links"]
 
         except ConfigError as err:
@@ -607,6 +611,7 @@ class ATHOS():
 
         def __init__(self, hosts_matrix=None, switch_matrix=None,
                      switch_dps=None, p4_switches=None,
+                     unmanaged_switches=None,
                      sw_path=DEFAULT_P4_SWITCH,
                      p4_json=DEFAULT_UMBRELLA_JSON,
                      logger=None,
@@ -637,10 +642,12 @@ class ATHOS():
                                    thrift_port=t_port
                                    )
                     switch_list.append(sw)
+            if unmanaged_switches:
+                for sw in unmanaged_switches:
+                    self.addSwitch(sw, failMode="standalone")
             for switch in switch_matrix:
                 self.addLink(switch[0], switch[2],
                              int(switch[1]), int(switch[3]))
-
             for host in hosts_matrix:
                 self.host_add(host)
 
