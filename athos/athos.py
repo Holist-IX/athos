@@ -80,7 +80,7 @@ class ATHOS():
         # No redundancy mode until p4 redundancy has been tested more
         if no_redundancy or self.p4_switches:
             return
-        for link in self.link_matrix:
+        for link in (l for l in self.link_matrix if self.backup_exists(l)):
             source_switch, destination_switch = link[0], link[2]
             self.log_info(f"Setting link between {source_switch}  " +
                           f"and {destination_switch} down")
@@ -233,6 +233,30 @@ class ATHOS():
             received = packets - lost
             self.log_info("*** Results: %i%% dropped (%d/%d received)" %
                           (ploss, received, packets))
+
+
+    def backup_exists(self, link):
+        """ Checks if the switches have a redundant path setup """
+        src_switch, dst_switch = link[0], link[2]
+
+        src_has_other_link = False
+        dst_has_other_link = False
+
+        for l in (i for i in self.link_matrix if i != link):
+            src_has_other_link = True if src_switch in l else src_has_other_link
+            dst_has_other_link = True if dst_switch in l else dst_has_other_link
+
+        if not src_has_other_link:
+            self.log_warn(f"Warning: {src_switch} does not have another core " +
+                          f"link, the link between {src_switch} and " + 
+                          f"{dst_switch} will not be turned off")
+            return False
+        if not dst_has_other_link:
+            self.log_warn(f"Warning: {dst_switch} does not have another core " + 
+                          f"link, the link between {dst_switch} and " + 
+                          f"{src_switch} will not be turned off")
+            return False
+        return True
 
 
     def start(self, args, logger):
@@ -484,7 +508,7 @@ class ATHOS():
                 if len(link) != 4:
                     raise ConfigError(f"{err_msg}Invalid link found."+
                                       "Expected link format:\n"
-                                      "[switch1_name,a,swithch2_name,b]\n" +
+                                      "[switch1_name,a,switch2_name,b]\n" +
                                       "Where a is the port on switch1 " +
                                       "connected to switch2, and vice versa " +
                                       f"for b\nLink found: {link}")
