@@ -1,14 +1,18 @@
 CHANGES
 =======
 
-* Increased PEP compatibilty when creating folders
-* Always check dirs on setup
-* Fixed spelling
-* Added debugging when creating log dir
-* Create log folder if it's not present
-* changed setup to allow for bdist\_wheel
-* Added clearer Defualt log paths
-* changed handling versions
+* Improved core link awareness when shutting down links (#14)
+* Added support to have an unmanaged switch
+* Fix vlan macaddress (#13)
+* fix sync issue (#12)
+* to sync branches
+* fixed spelling
+* Fix vlan addresses (#10)
+* Allowed for hosts to be part of internal vlans and be untagged
+* Updated readme (#9)
+* Clean up docker entry scripts and docker compose (#8)
+* Fixed issue with dpid not checked properly (#7)
+* Set conf files (#6)
 * Removed mixtt refrences (#5)
 * Clean config files (#4)
 * Cleaned up docker starting script (#3)
