@@ -28,7 +28,7 @@ def get_logger(log_level='info', logname='athos',
         level=log_lvl,
         force=True
     )
-    
+
     logger = logging.getLogger(logname)
 
     logger_fhandler = logging.FileHandler(log_file)
@@ -36,8 +36,8 @@ def get_logger(log_level='info', logname='athos',
     logger_fhandler.setFormatter(
         logging.Formatter(LOGMSGFORMAT, '%b %d %H:%M:%S'))
     logger_fhandler.setLevel(log_lvl)
-    logger.addHandler(logger_fhandler)
-    logger.propagate = False
+    lg.addHandler(logger_fhandler)
+    lg.propagate = False
 
     return logger
 
