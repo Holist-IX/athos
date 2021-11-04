@@ -21,7 +21,7 @@ building setting up an installation on Ubuntu.
   Athos can be installed via `pip3 install athos`.
 
   Do note that if you want to use the p4 core element, you will need to follow
-  the instructions for building it natively, as bmv2 and it's dependencies are
+  the instructions for building it natively, as bmv2 and its dependencies are
   required.
 
 2. Docker
@@ -46,7 +46,7 @@ building setting up an installation on Ubuntu.
 
    2.3 Pure Docker
 
-   If you would prefer using just docker, you can build it using
+   If you preferred using just docker, you can build it using
    `docker build belthazaar/athos:latest .` in the install directory.
 
    To run it you can run the following:
@@ -71,19 +71,19 @@ building setting up an installation on Ubuntu.
    - [Faucet](https://docs.faucet.nz/en/latest/installation.html)
    - [bmv2](https://github.com/p4lang/behavioral-model)
 
-   Finally to install Athos you can run `python3 -m pip install .` within the
+   Finally, to install Athos you can run `python3 -m pip install .` within the
    repo directory.
 
 ## Configuration
 
 The main configuration lies within `/etc/athos/topology.json`. This contains
 the topology information for Athos to emulate. A topology file can also be
-declared using the `-t` option. By defualt Athos will look in in `/etc/athos`
-for the topology and the P4 json files.
+declared using the `-t` option. By default, Athos will look in `/etc/athos`
+for the topology and the P4 JSON files.
 
 Below is a sample config containing 2 hosts connected to 2 OpenFlow edge
-switches with a bmv2 switch acting as the core switch. By default Athos comes
-with a compiled bmv2 that does switching based on the
+switches with a bmv2 switch acting as the core switch. By default, Athos comes
+with a compiled bmv2 that does layer-2 switching based on the
 [Umbrella concept](https://hal.archives-ouvertes.fr/hal-01862776)
 
 ```json
@@ -129,22 +129,22 @@ with a compiled bmv2 that does switching based on the
 
 ### Faucet
 
-By default Athos is designed to work with Faucet as the controller for the
+By default, Athos is designed to work with Faucet as the controller for the
 OpenFlow switches. A sample config has been provided in
 `etc/faucet/faucet.yaml`, with rules provided to work with the Umbrella bmv2
 core. The included faucet install is unchanged within the docker containers, so
 any configuration can be used, however do note that it can cause problems if
-used with the default bmv2 switches that does switching based on mac shifting.
+used with the default bmv2 switches that does switching based on MAC shifting.
 
 ### bmv2
 
-Athos by defualt uses an Umbrella core switch for it's P4 switches. This is
+Athos by default uses an Umbrella core switch for it's P4 switches. This is
 compiled using bmv2, based on their `simple_switch` and the resulting JSON that
 tells the switch how to implement its packet processing. This JSON is located
 at `/etc/athos/umbrella.json` however you can use the `--p4-json` option to
-declare another compiled P4 json file.
+declare another compiled P4 JSON file.
 
-Currently there is no support for topologies with bmv2 switches running
+Currently, there is no support for topologies with bmv2 switches running
 different P4 code to one another, however support could be added later if
 there is enough interest.
 
@@ -158,7 +158,7 @@ Below are some of the optional arguments that can be used:
 
 | Argument                                        | Description                                                |
 | ----------------------------------------------- | ---------------------------------------------------------- |
-| -t TOPOLOGY_FILE, --topology-file TOPOLOGY_FILE | Reads topology information from a json file                |
+| -t TOPOLOGY_FILE, --topology-file TOPOLOGY_FILE | Reads topology information from a JSON file                |
 | -c, --cli                                       | Enables CLI for debugging                                  |
 | -p PING, --ping PING                            | Set the ping count used in pingall                         |
 | -n, --no-redundancy                             | Disables the link redundancy checker (Used for testing p4) |
