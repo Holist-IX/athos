@@ -1,0 +1,13 @@
+FROM belthazaar/python_on_1604:3.8.12 as builder
+
+FROM p4lang/behavioral-model
+
+WORKDIR /athos
+
+COPY --from=builder /output/usr/local /usr/local/
+
+COPY . .
+
+RUN ./docker/install_athos.sh
+
+ENTRYPOINT ./docker/entry.sh
