@@ -82,13 +82,13 @@ class ATHOS():
             return
         for link in (l for l in self.link_matrix if self.backup_exists(l)):
             source_switch, destination_switch = link[0], link[2]
-            self.log_info(f"Setting link between {source_switch}  " +
-                          f"and {destination_switch} down")
+            info(f"Setting link between {source_switch} and "
+                 f"{destination_switch} down\n")
             self.net.configLinkStatus(source_switch, destination_switch, "down")
             self.ping_vlan_v4(ping_count)
             self.ping_vlan_v6(ping_count)
-            self.log_info(f"Setting link between {source_switch} " +
-                          f"and {destination_switch} up")
+            info(f"Setting link between {source_switch} and "
+                 f"{destination_switch} up\n")
             self.net.configLinkStatus(source_switch, destination_switch, "up")
             self.ping_vlan_v4(ping_count)
             self.ping_vlan_v6(ping_count)
@@ -159,18 +159,18 @@ class ATHOS():
     def ping_vlan_v4(self, ping_count=1):
         """ Uses the hosts matrix and pings all the ipv6 addresses, similar to
             mininet's pingall format """
-        self.log_info('*** Ping: testing ping4 reachability')
+        info('*** Ping: testing ping4 reachability\n')
         packets = 0
         lost = 0
         ploss = None
         for vlan in self.vlan_matrix:
-            self.log_info(f"Testing reachability for hosts with vlan: {vlan}")
+            info(f"Testing reachability for hosts with vlan: {vlan}\n")
             for host in self.vlan_matrix[vlan]:
                 results = []
                 if "ipv4" not in host:
                     continue
                 host_node = self.net.getNodeByName(f"h{host['id']}")
-                self.to_console(f'{host["name"]} -> ')
+                output(f'{host["name"]} -> ')
                 for dst in self.vlan_matrix[vlan]:
                     if dst is host:
                         continue
@@ -186,25 +186,25 @@ class ATHOS():
                     out = 'X'
                     if received:
                         out = dst["name"]
-                    self.to_console(f'{out} ')
+                    output(f'{out} ')
                     results.append(out)
                 output('\n')
         if packets > 0:
             ploss = 100.0 * lost / packets
             received = packets - lost
-            self.log_info("*** Results: %i%% dropped (%d/%d received)" %
-                          (ploss, received, packets))
+            info(f"*** Results: {round(ploss, 2)}% dropped "
+                 f"({received}/{packets} received)\n")
 
 
     def ping_vlan_v6(self, ping_count=1):
         """ Uses the hosts matrix and pings all the ipv6 addresses, similar to
             mininet's pingall format """
-        self.log_info('*** Ping: testing ping6 reachability')
+        info('*** Ping: testing ping6 reachability\n')
         packets = 0
         lost = 0
         ploss = None
         for vlan in self.vlan_matrix:
-            self.log_info(f"Testing reachability for hosts with vlan: {vlan}")
+            info(f"Testing reachability for hosts with vlan: {vlan}\n")
             for host in self.vlan_matrix[vlan]:
                 if "ipv6" not in host:
                     continue
@@ -231,8 +231,8 @@ class ATHOS():
         if packets > 0:
             ploss = 100.0 * lost / packets
             received = packets - lost
-            self.log_info("*** Results: %i%% dropped (%d/%d received)" %
-                          (ploss, received, packets))
+            info(f"*** Results: {round(ploss, 2)}% dropped "
+                 f"({received}/{packets} received)\n")
 
 
     def backup_exists(self, link):
@@ -247,14 +247,14 @@ class ATHOS():
             dst_has_other_link = True if dst_switch in l else dst_has_other_link
 
         if not src_has_other_link:
-            self.log_warn(f"Warning: {src_switch} does not have another core " +
-                          f"link, the link between {src_switch} and " + 
-                          f"{dst_switch} will not be turned off")
+            warn(f"Warning: {src_switch} does not have another core link, the "
+                 f"link between {src_switch} and {dst_switch} will not be "
+                 f"turned off\n")
             return False
         if not dst_has_other_link:
-            self.log_warn(f"Warning: {dst_switch} does not have another core " + 
-                          f"link, the link between {dst_switch} and " + 
-                          f"{src_switch} will not be turned off")
+            warn(f"Warning: {dst_switch} does not have another core link, the "
+                 f"link between {dst_switch} and {src_switch} will not be "
+                 f"turned off\n")
             return False
         return True
 
@@ -269,7 +269,7 @@ class ATHOS():
         info('Starting new Testing instance\n')
         nw_matrix = None
         if args.json_topology:
-            self.log_error("Direct JSON is not yet supported")
+            error("Direct JSON is not yet supported\n")
             sys.exit()
         if args.topology_file:
             nw_matrix = self.open_file(args.topology_file)
@@ -278,13 +278,13 @@ class ATHOS():
             nw_matrix = self.open_file(DEFAULT_INPUT_FILE)
 
         if not nw_matrix:
-            self.log_error("No topology discovered. Please check input files")
+            error("No topology discovered. Please check input files\n")
 
         try:
             ping_count = int(args.ping)
         except TypeError as err:
-            self.log_error('Ping input is not a number,' +
-                           f' using the default ping count of 1\n{err}')
+            error('Ping input is not a number, using the default ping '
+                  'count of 1\n{err}')
 
         t_port = None
         if args.thrift_port:
@@ -312,7 +312,7 @@ class ATHOS():
         try:
             data = json.loads(json_string)
         except ValueError as err:
-            self.log_error(f"Error in the input json string\n{err}")
+            error(f"Error in the input json string\n{err}")
         return data
 
 
@@ -323,14 +323,13 @@ class ATHOS():
             with open(input_file) as json_file:
                 data = json.load(json_file)
         except (UnicodeDecodeError, PermissionError, ValueError) as err:
-            self.log_error(f"Error in the file {input_file}\n{err}")
+            error(f"Error in the file {input_file}\n{err}\n")
         except FileNotFoundError as err:
-            self.log_error(f"File not found: {input_file}\n")
+            error(f"File not found: {input_file}\n")
             if input_file is DEFAULT_INPUT_FILE:
-                self.log_error(
-                    "Please specify a default topology in " +
-                    "/etc/mxitt/topology.json or specify a topology file " +
-                    f"using the -i --input option\n{err}")
+                error("Please specify a default topology in "
+                      "/etc/mxitt/topology.json or specify a topology file "
+                      f"using the -i --input option\n{err}\n")
                 sys.exit()
 
         return data
@@ -344,14 +343,14 @@ class ATHOS():
 
     def parse_config(self, nw_matrix):
         """ Parses and validates the config """
-        err_msg = "Malformed config detected!"
+        err_msg = "Malformed config detected! "
         try:
             if "hosts_matrix" not in nw_matrix:
                 raise ConfigError(f"{err_msg}No 'hosts_matrix' found\n")
             if "switch_matrix" not in nw_matrix:
                 raise ConfigError(f"{err_msg}No 'hosts_matrix' found\n")
         except ConfigError as err:
-            self.log_error(err)
+            error(err)
             sys.exit()
         self.check_hosts_config(nw_matrix["hosts_matrix"])
         self.check_switch_config(nw_matrix["switch_matrix"])
@@ -363,17 +362,16 @@ class ATHOS():
         err_msg = ("Malformed config detected in the hosts section!\n" +
                    "Please check the config:\n")
         if not host_matrix:
-            self.log_error(f"{err_msg} hosts_matrix doesn't have any content\n")
+            error(f"{err_msg}The hosts_matrix doesn't have any content\n")
 
         for host in host_matrix:
             malformed = False
             if "name" not in host:
-                self.log_error(f"{err_msg} Entry detected without a name\n")
+                error(f"{err_msg}Entry detected without a name\n")
                 malformed = True
 
             if "interfaces" not in host:
-                self.log_error(f"{err_msg} Entry detected " +
-                               "without any interfaces\n")
+                error(f"{err_msg}Entry detected without any interfaces\n")
                 malformed = True
             if malformed:
                 sys.exit()
@@ -413,20 +411,20 @@ class ATHOS():
                     self.check_vlan_validity(err_msg, iface["vlan"])
 
         except ConfigError as err:
-            self.log_error(err)
+            error(err + "\n")
             sys.exit()
 
     def check_ipv4_address(self, err_msg, v4_address):
         """ Checks validity of ipv4 address """
         try:
             if not v4_address:
-                raise ConfigError(f"{err_msg} please check that ipv4 sections" +
-                                  "have addresses assigned")
+                raise ConfigError(f"{err_msg} please check that ipv4 sections "
+                                  "have addresses assigned\n")
             if "." not in v4_address or "/" not in v4_address:
-                raise ConfigError(f"{err_msg} in the ipv4 section\n" +
+                raise ConfigError(f"{err_msg} in the ipv4 section\n"
                                   f"IPv4 section: {v4_address}\n")
         except ConfigError as err:
-            self.log_error(err)
+            error(err)
             sys.exit()
 
 
@@ -435,12 +433,12 @@ class ATHOS():
         try:
             if not v6_address:
                 raise ConfigError(f"{err_msg} please check that ipv6 sections" +
-                                  "have addresses assigned")
+                                  "have addresses assigned\n")
             if ":" not in v6_address or "/" not in v6_address:
                 raise ConfigError(f"{err_msg} in the ipv6 section\n" +
                                   f"IPv6 section: {v6_address}\n")
         except ConfigError as err:
-            self.log_error(err)
+            error(err)
             sys.exit()
 
 
@@ -449,13 +447,13 @@ class ATHOS():
         try:
             if not mac_address:
                 raise ConfigError(f"{err_msg} please check that MAC sections" +
-                                  "have addresses assigned")
+                                  "have addresses assigned\n")
             if ":" not in mac_address:
-                raise ConfigError(f"{err_msg} in the MAC section. Currently " +
-                                  "only : seperated addresses are supported\n" +
-                                  f"MAC section: {mac_address}\n")
+                raise ConfigError(f"{err_msg} in the MAC section. Currently "
+                                  "only addresses seperated with : is "
+                                  f"supported.\nMAC section: {mac_address}\n")
         except ConfigError as err:
-            self.log_error(err)
+            error(err)
             sys.exit()
 
 
@@ -475,9 +473,9 @@ class ATHOS():
 
             if not mac:
                 raise ConfigError(f"{err_msg} in the mac section. " +
-                                  "No mac address was provided")
+                                  "No mac address was provided\n")
         except ConfigError as err:
-            self.log_error(err)
+            error(err)
 
         return mac
 
@@ -487,11 +485,11 @@ class ATHOS():
         try:
             vid = int(vlan)
             if vid < 0 or vid > 4095:
-                raise ConfigError(f"{err_msg}. Invalid vlan id(vid) detected" +
-                                  "Vid should be between 1 and 4095. " +
-                                  f"Vid: {vid} detected\n")
+                raise ConfigError(f"{err_msg}. Invalid vlan id(vid) detected. "
+                                  "A valid vid should be between 1 and 4095.\n"
+                                  f"Found vid: {vid}\n")
         except (ConfigError, ValueError) as err:
-            self.log_error(err)
+            error(err)
             sys.exit()
 
 
@@ -501,33 +499,31 @@ class ATHOS():
                    "Please check the config:\n")
         try:
             if not sw_matrix:
-                raise ConfigError(f"{err_msg}Switch matrix is empty")
+                raise ConfigError(f"{err_msg}Switch matrix is empty\n")
             if "links" not in sw_matrix:
-                raise ConfigError(f"{err_msg}No links section found")
+                raise ConfigError(f"{err_msg}No links section found\n")
             for link in sw_matrix["links"]:
                 if len(link) != 4:
-                    raise ConfigError(f"{err_msg}Invalid link found."+
-                                      "Expected link format:\n"
-                                      "[switch1_name,a,switch2_name,b]\n" +
-                                      "Where a is the port on switch1 " +
-                                      "connected to switch2, and vice versa " +
-                                      f"for b\nLink found: {link}")
+                    raise ConfigError(f"{err_msg}Invalid link found. The "
+                        "expected link format should be:\n"
+                        "[switchA,portA,switchB,portB]\nWhere portA is the port"
+                        " on switchA connected to switchB, and vice versa "
+                        f"for portB\nLink found: {link}\n")
                 port_a = int(link[1])
                 port_b = int(link[3])
 
                 if port_a < 0 or port_a > 255 or port_b < 0 or port_b > 255:
-                    raise ConfigError("Invalid port number detected. Ensure" +
-                                      "that port numbers are between 0 and 255"+
-                                      f"sw1_port: {port_a}\t sw2_port:{port_b}")
+                    raise ConfigError("Invalid port number detected. Ensure "
+                                      "that port numbers are between 0 and 255 "
+                                      f"sw1_port: {port_a}\t sw2_port:{port_b}\n")
             if "dp_ids" not in sw_matrix:
-                self.log_warn(f"{err_msg}No dp_id section found, dp_ids " +
-                              "generated in Mininet might not match those in " +
-                              "controller config")
+                warn(f"{err_msg}No dp_id section found, dp_ids generated in "
+                     "Mininet might not match those in controller config\n")
             else:
                 for _, dp_id in sw_matrix["dp_ids"].items():
                     if not hex(dp_id):
-                        raise ConfigError(f"{err_msg}Please ensure that" +
-                                          " dp_ids are valid numbers")
+                        raise ConfigError(f"{err_msg}Please ensure that dp_ids "
+                                          "are valid numbers\n")
                 self.switch_dps = sw_matrix["dp_ids"]
             if "p4" in sw_matrix:
                 self.p4_switches = sw_matrix["p4"]
@@ -536,11 +532,11 @@ class ATHOS():
             self.link_matrix = sw_matrix["links"]
 
         except ConfigError as err:
-            self.log_error(err)
+            error(err)
             sys.exit()
         except ValueError as err:
-            self.log_error(f"{err_msg} Please check value of port numbers")
-            self.log_error(err)
+            error(f"{err_msg}Please check value of port numbers and vlan ids\n")
+            error(err)
             sys.exit()
 
 
@@ -610,26 +606,6 @@ class ATHOS():
         return flattened_matrix
 
 
-    @staticmethod
-    def to_console(message):
-        """ Outputs log message to console """
-        output(message)
-
-    def log_info(self, message):
-        """ Workaround to make mininet logger work with normal logger """
-        info(f'{message}\n')
-        self.logger.info(message)
-
-    def log_error(self, message):
-        """ Workaround to make mininet logger work with normal logger """
-        error(f'{message}\n')
-        self.logger.error('message')
-
-    def log_warn(self, message):
-        """ Workaround to make mininet logger work with normal logger """
-        warn(f'{message}\n')
-        self.logger.warning('message')
-
     class MyTopo(Topo):
         """ Custom topology generator """
 
@@ -652,10 +628,10 @@ class ATHOS():
                 switch_list.append(sw)
                 self.addSwitch(sw, dpid='%x' % dp_id)
             if p4_switches:
-                self.log_info('Adding p4 switches:')
+                info('Adding p4 switches:')
                 i = 0
                 for sw in p4_switches:
-                    self.log_info(f'{sw}')
+                    info(f'{sw}')
                     # Need to allow for multiple p4 switches to be used
                     # Can't use 9090 due to promethues clash
                     t_port = int(thrift_port_base) + int(i)
@@ -690,20 +666,6 @@ class ATHOS():
                              intf="eth-0")
             self.addLink(host["switch"], hname, host["swport"])
 
-        @staticmethod
-        def to_console(message):
-            """ Outputs log message to console """
-            output(message)
-
-        def log_info(self, message):
-            """ Workaround to make mininet logger work with normal logger """
-            info(f'{message}\n')
-            self.logger.info(message)
-
-        def log_error(self, message):
-            """ Workaround to make mininet logger work with normal logger """
-            error(f'{message}\n')
-            self.logger.error('message')
 
 class ConfigError(Exception):
     """ Exception handler for misconfigured configurations """
