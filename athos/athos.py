@@ -63,7 +63,7 @@ class ATHOS():
         self.net = Mininet(
             topo=topo,
             controller=RemoteController(
-                name="faucet",
+                name="cerberus-controller",
                 ip="127.0.0.1",
                 port=6653
             ))
