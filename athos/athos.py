@@ -178,7 +178,7 @@ class ATHOS():
                         continue
                     addr = dst['ipv4'].split('/')[0]
                     result = host_node.cmd(f'ping -I {host["port"]}' +
-                                           f' -c{ping_count} -i 0.01 {addr}')
+                                           f' -c{ping_count}  -W 1 -i 0.01 {addr}')
                     self.logger.debug(result)
                     sent, received = self.net._parsePing(result)
                     packets += sent
@@ -216,10 +216,8 @@ class ATHOS():
                     if "ipv6" not in dst:
                         continue
                     addr = dst['ipv6'].split('/')[0]
-                    result = host_node.cmd(f'ping6 -I {host["port"]}' +
-                                           f' -c{ping_count}' +
-                                           f' -i 0.01 {addr}')
-                    self.logger.debug(result)
+                    result = host_node.cmd(
+                        f'ping6 -I {host["port"]} -c{ping_count} -W 1 -i 0.01 {addr}')
                     sent, received = self.net._parsePing(result)
                     packets += sent
                     lost += sent - received
