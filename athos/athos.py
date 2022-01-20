@@ -25,6 +25,7 @@ DEFAULT_P4_OPTIONS = "--target bmv2 --arch"
 DEFAULT_P4_SWITCH = "simple_switch"
 DEFAULT_UMBRELLA_JSON = "/etc/athos/umbrella.json"
 DEFAULT_LOG_FILE = "/var/log/athos/athos.log"
+DEFAULT_PLOSS_THRESHOLD = 5 # Threshold in % of packet loss before stopping test
 
 LOGMSGFORMAT = '%(message)s'
 
@@ -47,6 +48,7 @@ class ATHOS():
         self.p4_switches = []
         self.logger = None
         self.unmanaged_switches = []
+        self.ploss_threshold = DEFAULT_PLOSS_THRESHOLD
 
 
     def build_network(self, thrift_port_base=9190):
@@ -73,10 +75,13 @@ class ATHOS():
         """ Sets up the network and tests that all hosts can ping each other in
             ipv4 and ipv6. Also tests failover by disabling links between
             switches """
-        self.ping_vlan_v4(ping_count)
+        v4_loss = self.ping_vlan_v4(ping_count)
         # Compensates for ipv6 taking some time to set up
         time.sleep(1)
-        self.ping_vlan_v6(ping_count)
+        v6_loss = self.ping_vlan_v6(ping_count)
+        ploss_passed = self.packet_loss_threshold_passed(v4_loss, v6_loss)
+        if not ploss_passed:
+            return
         # No redundancy mode until p4 redundancy has been tested more
         if no_redundancy or self.p4_switches:
             return
@@ -87,11 +92,19 @@ class ATHOS():
             self.net.configLinkStatus(source_switch, destination_switch, "down")
             self.ping_vlan_v4(ping_count)
             self.ping_vlan_v6(ping_count)
+            ploss_passed = self.packet_loss_threshold_passed(v4_loss, v6_loss,
+                                    source_switch, destination_switch, "down")
+            if not ploss_passed:
+                return
             info(f"Setting link between {source_switch} and "
                  f"{destination_switch} up\n")
             self.net.configLinkStatus(source_switch, destination_switch, "up")
             self.ping_vlan_v4(ping_count)
             self.ping_vlan_v6(ping_count)
+            ploss_passed = self.packet_loss_threshold_passed(v4_loss, v6_loss,
+                                    source_switch, destination_switch, "up")
+            if not ploss_passed:
+                return
 
 
     def cleanup_ips(self):
@@ -194,6 +207,7 @@ class ATHOS():
             received = packets - lost
             info(f"*** Results: {round(ploss, 2)}% dropped "
                  f"({received}/{packets} received)\n")
+            return ploss
 
 
     def ping_vlan_v6(self, ping_count=1):
@@ -231,6 +245,7 @@ class ATHOS():
             received = packets - lost
             info(f"*** Results: {round(ploss, 2)}% dropped "
                  f"({received}/{packets} received)\n")
+            return ploss
 
 
     def backup_exists(self, link):
@@ -489,6 +504,37 @@ class ATHOS():
         except (ConfigError, ValueError) as err:
             error(err)
             sys.exit()
+
+    def packet_loss_threshold_passed(self, v4_loss, v6_loss, src_switch=None,
+                                     dst_switch=None, status=""):
+        """ Helper to check packet loss and if it is more than the
+            maximum allowed """
+        link_error_msg = ""
+        if src_switch and dst_switch:
+            link_error_msg = (f" when the link between {src_switch} and "
+                              f"{dst_switch} was set {status}.")
+        else:
+            link_error_msg = (f" before any links were changed.")
+
+        if v4_loss and v4_loss > self.ploss_threshold \
+            and v6_loss and v6_loss > self.ploss_threshold:
+            error(f"FAIL: Reachability failed for both IPv4 and IPv6"
+                  f"{link_error_msg}")
+            error(f"Packet loss threshold: {self.ploss_threshold}\n"
+                  f"IPv4 loss: {v4_loss}\tIPv6 loss: {v6_loss}")
+            return False
+        elif v4_loss and v4_loss > self.ploss_threshold:
+            error(f"FAIL: Reachability failed for IPv4{link_error_msg}\n")
+            error(f"Packet loss threshold: {self.ploss_threshold}\n"
+                  f"IPv4 loss: {v4_loss}")
+            return False
+        elif v6_loss and v6_loss > self.ploss_threshold:
+            error(f"FAIL: Reachability failed for IPv6{link_error_msg}\n")
+            error(f"Packet loss threshold: {self.ploss_threshold}\t"
+                  f"IPv6 loss: {v6_loss}")
+            return False
+        else:
+            return True
 
 
     def check_switch_config(self, sw_matrix):
