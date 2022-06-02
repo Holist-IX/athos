@@ -7,7 +7,7 @@ if [ -n "$1" ] && [ "$1" == 'faucet' ]; then
     faucet 2>&1 | tee -a $OUT_FILE &
 else
     cp /etc/athos/topology.json /etc/cerberus/topology.json
-    cerberus-controller 2>&1 | tee -a $OUT_FILE &
+    cerberus-controller &>> $OUT_FILE &
 fi
 # Need to wait a second to give the SDN controller a chance to start up
 sleep 1s

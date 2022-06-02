@@ -11,7 +11,7 @@ if [ -n "$1" ] && [ "$1" == 'faucet' ]; then
         pip3 -q --no-cache-dir install --upgrade faucet
         cp /athos/etc/faucet /etc/faucet
 else
-    pip3 install -q --no-cache-dir install eventlet==0.30.2 cerberus-controller
+    pip3 install -q --no-cache-dir eventlet==0.30.2 cerberus-controller
     cp -r /usr/local/etc/cerberus /etc/cerberus
     mkdir /etc/cerberus/ /var/log/cerberus /etc/cerberus/rollback /etc/cerberus/failed
     touch /var/log/cerberus/cerberus.log
